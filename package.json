@@ -61,7 +61,8 @@
     "files": [
       "dist/**/*",
       "main.mjs",
-      "assets/images/icon.png"
+      "assets/images/icon.png",
+      "offline.html"
     ],
     "directories": {
       "output": "dist-electron"

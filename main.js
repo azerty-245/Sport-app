@@ -74,9 +74,22 @@ async function createWindow() {
         win.loadURL('http://localhost:8081');
         win.webContents.openDevTools();
     } else {
-        // In production, load the Vercel URL for instant updates
-        // This means the Windows app is a wrapper for your website
-        win.loadURL('https://sport-app-three-pi.vercel.app/');
+        // In production, load the Vercel URL
+        const VERCEL_URL = 'https://sport-app-three-pi.vercel.app/';
+
+        win.loadURL(VERCEL_URL).catch(err => {
+            console.log('Failed to load Vercel URL, showing offline page', err);
+            win.loadFile('offline.html');
+        });
+
+        // If page fails to load (e.g. lost connection mid-session or on start)
+        win.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+            console.log('Page failed to load:', errorCode, errorDescription);
+            // Only redirect if it's a main frame navigation failure
+            if (errorCode !== -3) { // -3 is ABORTED (usually fine)
+                win.loadFile('offline.html');
+            }
+        });
     }
 }
 
