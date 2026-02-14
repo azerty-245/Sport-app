@@ -61,7 +61,7 @@ export default function CookieBanner() {
                     En continuant, vous acceptez notre politique de confidentialité et l'utilisation de cookies pour améliorer votre expérience.
                 </Text>
                 <TouchableOpacity style={styles.button} onPress={acceptConsent}>
-                    <Text style={styles.buttonText}>C'est parti ! 🚀</Text>
+                    <Text style={styles.buttonText}>C'est parti ! </Text>
                 </TouchableOpacity>
             </View>
         </Animated.View>

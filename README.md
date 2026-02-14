@@ -1,102 +1,80 @@
-# Sport Zone
+# 🏆 Sport Zone - Streaming & Live Scores
 
-**Sport Zone** is a cross-platform (Web, Android, Windows) application for following live football scores, matches, and streaming live TV channels.
+**Sport Zone** est une application multiplateforme (Web, Android, Windows) permettant de suivre le football en direct : streaming IPTV, scores en temps réel, actualités et statistiques détaillées.
 
-## Features
+---
 
--   **Live Scores & Statistics**: Real-time updates for football matches worldwide.
--   **Live TV Streaming**: Watch sports channels directly within the app (IPTV integration).
-    -   *Supports MPEG-TS and HLS streams natively.*
--   **Match Highlights**: Replay goals and key moments.
--   **Cross-Platform**:
-    -   📱 **Android**: Optimized mobile experience.
-    -   💻 **Windows**: Desktop application with native window management.
-    -   🌐 **Web**: Responsive web app.
+## 🔥 Fonctionnalités Principales
 
-## Tech Stack
+### 📺 Live Streaming
+- **IPTV Intégré** : Accès aux chaînes sportives (Canal+, beIN, RMC, etc.) via un proxy sécurisé.
+- **Proxy Oracle Cloud** : Contourne les blocages CORS et assure la stabilité (transcodage FFmpeg AAC).
+- **Lecteur optimisé** : Buffer intelligent (5s) pour éviter les coupures.
 
--   **Framework**: [React Native](https://reactnative.dev/) with [Expo](https://expo.dev/).
--   **Navigation**: [Expo Router](https://docs.expo.dev/router/introduction/).
--   **Desktop**: [Electron](https://www.electronjs.org/) for Windows build.
--   **Video Player**: HTML5 Video with [hls.js](https://github.com/video-dev/hls.js) and [mpegts.js](https://github.com/xqq/mpegts.js) for robust stream support.
+### ⚽️ Scores & Stats
+- **Traqueurs en direct** : Scores mis à jour en temps réel pour toutes les ligues majeures (Ligue 1, Premier League, Liga, etc.).
+- **Recherche Avancée** : Fiches détaillées pour joueurs (valeur marchande, contrat, stats physiques) et équipes (stade, staff, historique).
 
-## Prerequisites
+### 📰 Actualités
+- **Flux continu** : Dernières news football traduites en français.
+- **Interface fluide** : Lecture rapide sans quitter l'application.
 
--   [Node.js](https://nodejs.org/) (LTS version recommended).
--   [Expo CLI](https://docs.expo.dev/get-started/installation/): `npm install -g expo-cli`.
--   [EAS CLI](https://docs.expo.dev/eas/): `npm install -g eas-cli` (for Android builds).
+---
 
-## Installation
+## 🛠️ Architecture Technique
 
-1.  **Clone the repository**:
-    ```bash
-    git clone https://github.com/your-username/sport-zone.git
-    cd sport-zone
-    ```
+### 📱 Frontend (Expo / React Native)
+- **Framework** : Expo Router (File-based routing).
+- **UI** : React Native Paper + Styles personnalisés (Dark Mode par défaut).
+- **Navigation** : Tabs (Streaming, News, Scores, Recherche).
 
-2.  **Install dependencies**:
-    ```bash
-    npm install
-    ```
+### ☁️ Backend (Oracle Cloud)
+- **Proxy Node.js** : Serveur intermédiaire hébergé sur une instance Oracle Cloud (Francfort).
+- **Rôle** : 
+  - Masque les identifiants IPTV.
+  - Convertit les flux pour le web (HLS/MPEG-TS).
+  - Gère les headers CORS et Referer.
 
-## Configuration
+### 🔒 Sécurité
+- **Obfuscation** : Code minifié en production.
+- **Variables d'environnement** : `EXPO_PUBLIC_*` injectées au build (pas de secrets dans le code source).
+- **Git** : Fichiers sensibles (`ffmpeg.exe`, `.env`, scripts de test) exclus du dépôt.
 
-Create a `.env` file in the root directory with your API keys:
+---
 
-```ini
-EXPO_PUBLIC_FOOTBALL_API_KEY=your_api_key_here
-EXPO_PUBLIC_IPTV_URL=http://your-iptv-provider.com/playlist.m3u
-```
+## 📦 Installation & Déploiement
 
-> **Note:** The application uses `mpegts.js` to play raw MPEG-TS streams from IPTV providers without triggering file downloads.
-
-## Running Locally
-
-### Development (Web & Mobile)
-Start the Expo development server:
+### 🌐 Web (Vercel)
+L'application est hébergée gratuitement sur Vercel avec le preset **Vite**.
 ```bash
-npm start
+# Build & Deploy
+npx expo export --platform web
+npx vercel --prod
 ```
--   Press `w` for Web.
--   Press `a` for Android (requires Emulator or connected device).
 
-### Development (Windows / Electron)
-Run the Electron app in development mode:
+### 🤖 Android (APK)
+Généré via **EAS Build** (Expo Application Services).
 ```bash
-npm run electron:start
+# Générer l'APK
+npx eas-cli build --platform android --profile preview
 ```
 
-## Building for Production
-
-### 1. Web (Static Site)
-Build the static website for hosting (e.g., Vercel, Netlify):
+### 💻 Windows (Electron)
+Portage desktop via **Electron**.
 ```bash
-npm run build:web
+# Créer l'exécutable Windows
+npx expo export --platform web
+npx electron-builder --win
 ```
-*Output directory: `dist/`*
 
-### 2. Android (APK)
-Build the Android APK using EAS Build:
+### 🔄 Mises à jour (OTA)
+Les mises à jour JS (textes, couleurs, bugs) sont poussées instantanément sans réinstaller l'app.
 ```bash
-npm run build:android
+npx eas-cli update --branch preview --message "Correction mineure"
 ```
-*Note: Requires an Expo account and configured EAS project.*
 
-### 3. Windows (Portable Exe)
-Build the Windows executable:
-```bash
-npm run build:windows
-```
-*Output directory: `dist-electron/`*
+---
 
-## Troubleshooting
-
--   **IPTV streams download instead of play?**
-    Ensure you are using the latest version of `streaming.tsx` which includes the `mpegts.js` integration. The app is configured to block direct downloads of stream files in `main.mjs`.
-
--   **Electron build fails?**
-    Make sure you have run `npm install` and that `electron-builder` is installed correctly.
-
-## License
-
-MIT
+## 🤝 Crédits
+Développé par **Eben-Tech**.
+*Propulsé par Expo, React Native & Oracle Cloud.*

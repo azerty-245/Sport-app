@@ -1,41 +1,42 @@
-# Sport Zone - Résumé du Projet et Défis Techniques
+# 📝 Résumé du Projet Sport Zone
 
-## 📝 Présentation du Projet
-**Sport Zone** est une application multiplateforme (Web, Android, Windows) conçue pour centraliser le streaming sportif en direct. L'application propose des scores en temps réel, des résumés de matchs (highlights) et l'accès à une playlist IPTV premium.
+## 🎯 Objectif
+Créer une application unique pour centraliser l'expérience du fan de football : regarder les matchs, consulter les scores et lire les news, le tout sur n'importe quel écran (PC, Mobile, Web).
 
-### Stack Technique
-- **Frontend** : React Native (Expo) pour une base de code unique.
-- **Web Player** : `mpegts.js` et `hls.js` pour une lecture fluide des flux IPTV.
-- **Backend (Proxy)** : Node.js (Express) déployé sur **Oracle Cloud Infrastructure**.
-- **Moteur de Transcodage** : **FFmpeg** pour la conversion audio en temps réel.
+## 🏗️ Architecture & Choix Techniques
+
+### 1. Le Défi du Streaming Web (CORS & Audio)
+Le plus grand défi a été de lire des flux IPTV (souvent en HTTP non sécurisé ou avec des codecs audio AC3 non supportés par les navigateurs) sur une application Web moderne.
+**Solution :** Création d'un **Proxy Node.js sur Oracle Cloud**.
+- **FFmpeg en temps réel** : Le serveur transcode l'audio AC3 en AAC (lisible partout).
+- **Tunneling** : Le flux passe par le serveur, contournant les restrictions CORS et HTTPS du navigateur.
+
+### 2. Une seule base de code (Expo)
+Au lieu de maintenir 3 projets (Web, Android, Desktop), nous avons utilisé **Expo + React Native Web**.
+- **95% du code est partagé**.
+- **Electron** encapsule la version Web pour créer un `.exe` Windows natif.
+- **EAS Build** génère l'APK Android optimisé.
+
+### 3. Mises à jour OTA (Over-The-Air)
+Un système de mise à jour "invisible" a été mis en place.
+- **Avantage** : Plus besoin de demander aux utilisateurs de télécharger une nouvelle version pour corriger une faute de frappe ou changer une couleur.
+- **Vitesse** : Déploiement en 30 secondes via `eas update`.
+
+## 🔒 Sécurité Mise en Place
+- **Proxy** : Les identifiants IPTV ne quittent jamais le serveur Oracle. L'application ne connaît que l'adresse du proxy.
+- **Variables d'environnement** : Utilisation stricte de `.env` pour toutes les clés API.
+- **Git** : Nettoyage strict des fichiers sensibles et binaires lourds (`ffmpeg.exe`) pour un dépôt propre.
+
+## 🚀 État Actuel
+- **Web** : 🟢 Déployé sur Vercel (`sport-app.vercel.app`).
+- **Android** : 🟢 APK généré et fonctionnel.
+- **Windows** : 🟢 Build Electron prêt.
+- **Contenu** : 🟢 News, Scores, Recherche et Streaming opérationnels.
+
+## � Prochaines Étapes Possibles
+- Ajouter des notifications Push pour les buts (via Expo Notifications).
+- Intégrer un mode "Multi-View" pour regarder 2 matchs en même temps (possible grâce à la puissance du Proxy).
+- Ajouter un chat en direct pendant les matchs.
 
 ---
-
-## 🛠️ Défis Rencontrés et Solutions
-
-### 1. Blocages CORS (Navigateur Web)
-- **Problème** : Les navigateurs web interdisent de télécharger une playlist IPTV (.m3u) directement depuis un serveur tiers pour des raisons de sécurité.
-- **Solution** : Création d'un **Proxy de Streaming**. L'application demande au serveur proxy de récupérer la liste pour elle, contournant ainsi les restrictions CORS.
-
-### 2. Absence de Son (Format AC3/Dolby)
-- **Problème** : La plupart des flux IPTV utilisent le format audio AC3 (Dolby Digital Plus). Les navigateurs (Chrome, Safari) ne savent pas lire ce format nativement, ce qui rendait les chaînes muettes sur le Web.
-- **Solution** : Utilisation de **FFmpeg** sur le serveur. Chaque flux est traité à la volée : la vidéo est copiée telle quelle (pas de perte de qualité) et le son est converti en **AAC** (format universel pour le Web).
-
-### 3. Instabilité et Coupures de Flux
-- **Problème** : Les flux IPTV sont souvent instables. La moindre micro-coupure de connexion faisait planter le lecteur vidéo.
-- **Solution** : 
-    - **Côté Serveur** : Ajout de drapeaux de reconnexion dans FFmpeg (`-reconnect`).
-    - **Côté Application** : Mise en place d'un "Stash Buffer" de **5 secondes**. L'application télécharge toujours 5 secondes d'avance pour absorber les ralentissements réseau.
-    - **Bouton Reload** : Ajout d'une option manuelle pour relancer le flux instantanément en cas de gel complet.
-
-### 4. Déploiement Cloud (Oracle Cloud)
-- **Problème** : Difficultés initiales à créer une instance (problèmes de capacité Oracle) et pare-feu Linux bloquant les ports par défaut.
-- **Solution** : Configuration d'une instance **Standard.E2.1.Micro** (toujours gratuit) et ouverture manuelle des ports (3005) via la console Oracle ET les règles `iptables` du serveur Ubuntu.
-
----
-
-## 🚀 Conclusion
-L'architecture actuelle est **industrielle** et **robuste**. 
-Grâce au serveur Cloud, l'application fonctionne désormais de manière identique sur Windows, Android et Web, offrant une expérience premium sans les limitations habituelles des navigateurs.
-
-**Le système est 100% opérationnel.** 🥇⚽️🔊
+*Document généré le 14/02/2026 - Version 1.0.0*
