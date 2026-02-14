@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Link } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Animated, Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { borderRadius, colors, fontSize, shadows, spacing } from '../constants/theme';
@@ -58,7 +59,7 @@ export default function CookieBanner() {
                     ⚽  Scores en direct et classements{"\n"}
                     📰  Actualités football{"\n"}
                     🔍  Recherche de joueurs et équipes{"\n\n"}
-                    En continuant, vous acceptez notre politique de confidentialité et l'utilisation de cookies pour améliorer votre expérience.
+                    En continuant, vous acceptez notre <Link href="/legal" style={styles.link}>politique de confidentialité</Link> et l'utilisation de cookies pour améliorer votre expérience.
                 </Text>
                 <TouchableOpacity style={styles.button} onPress={acceptConsent}>
                     <Text style={styles.buttonText}>C'est parti ! </Text>
@@ -120,5 +121,10 @@ const styles = StyleSheet.create({
         color: colors.background,
         fontSize: fontSize.md,
         fontWeight: '700',
+    },
+    link: {
+        color: '#ff4757',
+        fontWeight: 'bold',
+        textDecorationLine: 'underline',
     },
 });
