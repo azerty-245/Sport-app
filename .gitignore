@@ -40,3 +40,12 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Sensitive scripts (may contain credentials)
+scripts/
+working_iptv_links.json
+check_streaming.js
+test.js
+
+# Build artifacts
+dist-electron/

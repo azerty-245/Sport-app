@@ -58,7 +58,6 @@ const leagueEndpoints = {
     seriea: 'seriea',
     ligue1: 'ligue1',
     ucl: 'ucl',
-    europa: 'europa',
     euros: 'euros',
     fifa: 'fifa',
 };
@@ -78,7 +77,6 @@ export const LEAGUE_LIST = [
     { key: 'seriea', name: 'Serie A', emoji: '🇮🇹', hasMatches: false },
     { key: 'ligue1', name: 'Ligue 1', emoji: '🇫🇷', hasMatches: false },
     { key: 'ucl', name: 'Champions League', emoji: '🏆', hasMatches: true },
-    { key: 'europa', name: 'Europa League', emoji: '🌍', hasMatches: false },
     { key: 'euros', name: 'Euros', emoji: '🇪🇺', hasMatches: false },
     { key: 'fifa', name: 'FIFA World Cup', emoji: '🌎', hasMatches: false },
 ];

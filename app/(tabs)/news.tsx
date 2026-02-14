@@ -33,7 +33,7 @@ export default function NewsScreen() {
         return (
             <View style={styles.center}>
                 <ActivityIndicator size="large" color={colors.accent} />
-                <Text style={styles.loadingText}>Loading news...</Text>
+                <Text style={styles.loadingText}>Chargement des actualités...</Text>
             </View>
         );
     }
@@ -53,7 +53,7 @@ export default function NewsScreen() {
                 showsVerticalScrollIndicator={false}
                 ListHeaderComponent={
                     <View style={styles.header}>
-                        <Text style={styles.headerTitle}>Latest Football News</Text>
+                        <Text style={styles.headerTitle}>Actualités Football</Text>
                         <Text style={styles.headerSub}>{articles.length} articles</Text>
                     </View>
                 }

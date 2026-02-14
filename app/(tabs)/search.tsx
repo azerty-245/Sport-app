@@ -46,7 +46,17 @@ export default function SearchScreen() {
                 <Text style={styles.resultSub}>{item.team || item.club}</Text>
                 {item.nationality && <Text style={styles.resultDetail}>🌍 {item.nationality}</Text>}
                 {item.position && <Text style={styles.resultDetail}>📋 {item.position}</Text>}
-                {item.age && <Text style={styles.resultDetail}>🎂 Age: {item.age}</Text>}
+                {item.age && <Text style={styles.resultDetail}>🎂 Âge : {item.age}</Text>}
+                {item.number && <Text style={styles.resultDetail}>🔢 Numéro : {item.number}</Text>}
+                {item.height && <Text style={styles.resultDetail}>📏 Taille : {item.height}</Text>}
+                {item.weight && <Text style={styles.resultDetail}>⚖️ Poids : {item.weight}</Text>}
+                {item.birthDate && <Text style={styles.resultDetail}>📅 Né le : {item.birthDate}</Text>}
+                {item.birthPlace && <Text style={styles.resultDetail}>📍 Lieu : {item.birthPlace}</Text>}
+                {item.marketValue && <Text style={styles.resultDetail}>💰 Valeur : {item.marketValue}</Text>}
+                {item.contractUntil && <Text style={styles.resultDetail}>📄 Contrat : {item.contractUntil}</Text>}
+                {item.goals != null && <Text style={styles.resultDetail}>⚽ Buts : {item.goals}</Text>}
+                {item.assists != null && <Text style={styles.resultDetail}>🅰️ Passes D. : {item.assists}</Text>}
+                {item.appearances != null && <Text style={styles.resultDetail}>🏟️ Matchs : {item.appearances}</Text>}
             </View>
         </View>
     );
@@ -65,7 +75,12 @@ export default function SearchScreen() {
                 <Text style={styles.resultName}>{item.name || item.team}</Text>
                 {item.country && <Text style={styles.resultSub}>🌍 {item.country}</Text>}
                 {item.stadium && <Text style={styles.resultDetail}>🏟️ {item.stadium}</Text>}
-                {item.founded && <Text style={styles.resultDetail}>📅 Founded: {item.founded}</Text>}
+                {item.capacity && <Text style={styles.resultDetail}>👥 Capacité : {item.capacity}</Text>}
+                {item.founded && <Text style={styles.resultDetail}>📅 Fondé en : {item.founded}</Text>}
+                {item.league && <Text style={styles.resultDetail}>🏆 Ligue : {item.league}</Text>}
+                {item.coach && <Text style={styles.resultDetail}>👨‍💼 Entraîneur : {item.coach}</Text>}
+                {item.website && <Text style={styles.resultDetail}>🌐 {item.website}</Text>}
+                {item.colors && <Text style={styles.resultDetail}>🎨 Couleurs : {item.colors}</Text>}
             </View>
         </View>
     );
@@ -79,14 +94,14 @@ export default function SearchScreen() {
                     onPress={() => { setMode('player'); setResults([]); setSearched(false); }}
                 >
                     <Ionicons name="person" size={16} color={mode === 'player' ? colors.accent : colors.textMuted} />
-                    <Text style={[styles.modeText, mode === 'player' && styles.modeTextActive]}>Player</Text>
+                    <Text style={[styles.modeText, mode === 'player' && styles.modeTextActive]}>Joueur</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                     style={[styles.modeBtn, mode === 'team' && styles.modeActive]}
                     onPress={() => { setMode('team'); setResults([]); setSearched(false); }}
                 >
                     <Ionicons name="football" size={16} color={mode === 'team' ? colors.accent : colors.textMuted} />
-                    <Text style={[styles.modeText, mode === 'team' && styles.modeTextActive]}>Team</Text>
+                    <Text style={[styles.modeText, mode === 'team' && styles.modeTextActive]}>Équipe</Text>
                 </TouchableOpacity>
             </View>
 
@@ -96,7 +111,7 @@ export default function SearchScreen() {
                     <Ionicons name="search" size={18} color={colors.textMuted} />
                     <TextInput
                         style={styles.input}
-                        placeholder={mode === 'player' ? 'Search player (e.g. Ronaldo)' : 'Search team (e.g. Real Madrid)'}
+                        placeholder={mode === 'player' ? 'Rechercher un joueur (ex: Ronaldo)' : 'Rechercher une équipe (ex: Real Madrid)'}
                         placeholderTextColor={colors.textMuted}
                         value={query}
                         onChangeText={setQuery}
@@ -125,14 +140,14 @@ export default function SearchScreen() {
                         searched ? (
                             <View style={styles.empty}>
                                 <Ionicons name="search-outline" size={48} color={colors.textMuted} />
-                                <Text style={styles.emptyText}>No results found for "{query}"</Text>
+                                <Text style={styles.emptyText}>Aucun résultat pour "{query}"</Text>
                             </View>
                         ) : (
                             <View style={styles.empty}>
                                 <Ionicons name="football-outline" size={64} color={colors.cardBorder} />
-                                <Text style={styles.emptyTitle}>Search {mode === 'player' ? 'Players' : 'Teams'}</Text>
+                                <Text style={styles.emptyTitle}>Rechercher des {mode === 'player' ? 'Joueurs' : 'Équipes'}</Text>
                                 <Text style={styles.emptyText}>
-                                    Find any {mode === 'player' ? 'football player' : 'team'} by name
+                                    Trouvez n'importe quel {mode === 'player' ? 'joueur de football' : 'équipe'} par nom
                                 </Text>
                             </View>
                         )

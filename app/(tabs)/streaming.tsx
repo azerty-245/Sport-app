@@ -1,21 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Image, Linking, Modal, Platform, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, Image, Modal, Platform, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import LegalFooter from '../../components/LegalFooter';
 import { ChannelSkeleton, HighlightSkeleton, MatchSkeleton } from '../../components/SkeletonCards';
 import StreamCard from '../../components/StreamCard';
 import { borderRadius, colors, fontSize, shadows, spacing } from '../../constants/theme';
 import { getAllStreaming, getStreamingChannels } from '../../services/api';
-import { fetchIPTVChannels, fetchScoreBatHighlights } from '../../services/externalStreams';
+import { fetchScoreBatHighlights } from '../../services/externalStreams';
 import { fetchAllLiveScores } from '../../services/footballAPIs';
+import { getIPTVChannels } from '../../services/iptv';
 
-type TabKey = 'matches' | 'channels' | 'highlights';
+type TabKey = 'channels' | 'highlights';
 
 const TABS: { key: TabKey; label: string; icon: string }[] = [
-    { key: 'matches', label: 'Matches', icon: 'football' },
-    { key: 'channels', label: 'Channels', icon: 'tv' },
+    { key: 'channels', label: 'Live TV', icon: 'tv' },
     { key: 'highlights', label: 'Highlights', icon: 'videocam' },
 ];
 
@@ -34,7 +34,7 @@ function fuzzyMatch(target: string, query: string): boolean {
 }
 
 export default function StreamingScreen() {
-    const [activeTab, setActiveTab] = useState<TabKey>('matches');
+    const [activeTab, setActiveTab] = useState<TabKey>('channels');
     const [matches, setMatches] = useState<any[]>([]);
     const [liveScores, setLiveScores] = useState<any[]>([]);
     const [channels, setChannels] = useState<any[]>([]);
@@ -52,12 +52,12 @@ export default function StreamingScreen() {
 
     const fetchData = useCallback(async () => {
         try {
-            const [matchesData, channelsData, highlightsData, iptvData, liveScoresData] = await Promise.all([
+            const [matchesData, channelsData, highlightsData, liveScoresData, myIPTVData] = await Promise.all([
                 getAllStreaming(),
                 getStreamingChannels(),
                 fetchScoreBatHighlights(),
-                fetchIPTVChannels(),
-                fetchAllLiveScores()
+                fetchAllLiveScores(),
+                getIPTVChannels()
             ]);
 
             // Process Matches (PrinceTech streams)
@@ -67,13 +67,15 @@ export default function StreamingScreen() {
             // Process Live Scores (SofaScore + OpenLigaDB)
             setLiveScores(liveScoresData || []);
 
-            // Process Channels
+            // Process Channels - Use our verified premium IPTV + API channels
             const channelsRaw = (channelsData && channelsData.channels) || (Array.isArray(channelsData) ? channelsData : []) || [];
             const sanitizedAPIChannels = channelsRaw.map((c: any) => ({
                 ...c,
                 name: c.name || c.title || c.channel_name || 'Live Channel'
             }));
-            const allChannels = [...sanitizedAPIChannels, ...iptvData];
+
+            // Our verified IPTV channels first, then API channels
+            const allChannels = [...(myIPTVData || []), ...sanitizedAPIChannels];
             setChannels(allChannels);
 
             // Process Highlights
@@ -204,19 +206,98 @@ export default function StreamingScreen() {
             };
         }
 
-        return { type: 'uri', value: url, url };
+        // For direct MPEG-TS / IPTV streams (Xtream Codes, etc.) — use mpegts.js
+        return {
+            type: 'html',
+            value: `<html>
+          <head>
+            <meta name="viewport" content="width=device-width,initial-scale=1">
+            <script src="https://cdn.jsdelivr.net/npm/mpegts.js@1.7.3/dist/mpegts.js"><\/script>
+            <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"><\/script>
+            <style>
+                body { margin:0; background:#000; overflow:hidden; display:flex; align-items:center; justify-content:center; height:100vh; }
+                #video { border:0; width:100%; height:100vh; background:#000; }
+                #status { position:fixed; top:10px; left:10px; color:#888; font-family:sans-serif; font-size:12px; z-index:10; }
+            </style>
+          </head>
+          <body>
+            <div id="status">Chargement du flux...</div>
+            <video id="video" controls autoplay playsinline></video>
+            <script>
+              var video = document.getElementById('video');
+              var statusOverlay = document.getElementById('status');
+              var src = '${url}';
+
+              function hideStatus() { if(statusOverlay) statusOverlay.style.display = 'none'; }
+
+              // Try mpegts.js first (for MPEG-TS / FLV streams from IPTV servers)
+              if (mpegts.isSupported()) {
+                if(statusOverlay) statusOverlay.textContent = 'Connexion au flux MPEG-TS...';
+                var player = mpegts.createPlayer({
+                  type: 'mpegts',
+                  isLive: true,
+                  url: src
+                }, {
+                  enableWorker: true,
+                  liveBufferLatencyChasing: false, // STOP THE JUMPS: Don't skip forward to catch up
+                  liveSync: true,
+                  liveSyncTarget: 5,               // Aim to stay at the 5s buffer mark
+                  enableStashBuffer: true,
+                  stashInitialSize: 5000,          // 5s of safety
+                  fixAudioTimestampGap: false,
+                });
+                player.attachMediaElement(video);
+                player.load();
+                player.play().catch(function(e) { console.log('Autoplay blocked:', e); });
+                player.on(mpegts.Events.ERROR, function(errType, errDetail) {
+                  console.warn('mpegts error, trying HLS fallback:', errType, errDetail);
+                  player.destroy();
+                  tryHLS();
+                });
+                video.addEventListener('playing', hideStatus);
+              } else {
+                tryHLS();
+              }
+
+              function tryHLS() {
+                if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+                  if(statusOverlay) statusOverlay.textContent = 'Tentative HLS...';
+                  var hls = new Hls({ enableWorker: true });
+                  hls.loadSource(src);
+                  hls.attachMedia(video);
+                  hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                    video.play().catch(function(e) { console.log(e); });
+                    hideStatus();
+                  });
+                  hls.on(Hls.Events.ERROR, function(event, data) {
+                    if (data.fatal) { tryDirect(); }
+                  });
+                } else {
+                  tryDirect();
+                }
+              }
+
+              function tryDirect() {
+                if(statusOverlay) statusOverlay.textContent = 'Lecture directe...';
+                video.src = src;
+                video.addEventListener('loadedmetadata', function() {
+                  video.play().catch(function(e) { console.log(e); });
+                  hideStatus();
+                });
+                video.addEventListener('error', function() {
+                  if(statusOverlay) {
+                    statusOverlay.textContent = 'Impossible de lire ce flux.';
+                    statusOverlay.style.color = '#e74c3c';
+                  }
+                });
+              }
+            <\/script>
+          </body>
+        </html>`,
+            url
+        };
     };
 
-    const handleOpenInBrowser = () => {
-        const content = getStreamContent();
-        if (content?.url) {
-            if (Platform.OS === 'web') {
-                window.open(content.url, '_blank');
-            } else {
-                Linking.openURL(content.url);
-            }
-        }
-    };
 
     // ─── Renderers ───
     const renderChannelItem = ({ item }: { item: any }) => (
@@ -331,45 +412,6 @@ export default function StreamingScreen() {
     // ─── Tab content ───
     const renderTabContent = () => {
         switch (activeTab) {
-            case 'matches': {
-                // Merge PrinceTech streams with live scores from external APIs
-                const combinedMatches = [...matches, ...liveScores];
-                return (
-                    <FlatList
-                        ref={flatListRef}
-                        data={combinedMatches}
-                        keyExtractor={(item, index) => (item.id || item.homeTeam || '') + index}
-                        renderItem={renderMatchItem}
-                        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
-                        contentContainerStyle={styles.list}
-                        showsVerticalScrollIndicator={false}
-                        ListHeaderComponent={
-                            <View>
-                                <View style={styles.tabHeader}>
-                                    <Ionicons name="football" size={20} color={colors.accent} />
-                                    <Text style={styles.tabHeaderText}>Live Scores & Streams</Text>
-                                </View>
-                                {liveScores.length > 0 && (
-                                    <View style={styles.sourceInfoRow}>
-                                        <Text style={styles.sourceInfoText}>
-                                            ⚡ {liveScores.filter(m => m.isLive).length} live • {matches.length} streams • {liveScores.length} scores
-                                        </Text>
-                                    </View>
-                                )}
-                            </View>
-                        }
-                        ListEmptyComponent={
-                            <View style={styles.emptyContainer}>
-                                <Ionicons name="football-outline" size={64} color={colors.textMuted} />
-                                <Text style={styles.emptyText}>No match data available</Text>
-                                <Text style={styles.emptySubText}>Check back during match days</Text>
-                            </View>
-                        }
-                        ListFooterComponent={<LegalFooter />}
-                    />
-                );
-            }
-
             case 'channels':
                 return (
                     <FlatList
@@ -510,8 +552,16 @@ export default function StreamingScreen() {
                         <Text style={styles.modalTitle} numberOfLines={1}>
                             {selectedStream?.homeTeam} {selectedStream?.awayTeam ? `vs ${selectedStream.awayTeam}` : ''}
                         </Text>
-                        <TouchableOpacity onPress={handleOpenInBrowser} style={styles.browserBtn}>
-                            <Ionicons name="open-outline" size={22} color={colors.accent} />
+                        <TouchableOpacity
+                            onPress={() => {
+                                // Hack to force reload: clear and reset selected stream
+                                const current = selectedStream;
+                                setSelectedStream(null);
+                                setTimeout(() => setSelectedStream(current), 50);
+                            }}
+                            style={styles.actionBtn}
+                        >
+                            <Ionicons name="refresh" size={22} color={colors.accent} />
                         </TouchableOpacity>
                     </View>
 
@@ -538,13 +588,17 @@ export default function StreamingScreen() {
 
                         if (Platform.OS === 'web') {
                             return (
-                                <iframe
-                                    src={content.type === 'uri' ? content.value : undefined}
-                                    srcDoc={content.type === 'html' ? content.value : undefined}
-                                    style={{ border: 'none', width: '100%', height: '100%', flex: 1 }}
-                                    allowFullScreen
-                                    title="Stream"
-                                />
+                                <View style={{ flex: 1, width: '100%', maxWidth: 1000, alignSelf: 'center', justifyContent: 'center' }}>
+                                    <View style={{ width: '100%', aspectRatio: 16 / 9, backgroundColor: '#000' }}>
+                                        <iframe
+                                            src={content.type === 'uri' ? content.value : undefined}
+                                            srcDoc={content.type === 'html' ? content.value : undefined}
+                                            style={{ border: 'none', width: '100%', height: '100%' }}
+                                            allowFullScreen
+                                            title="Stream"
+                                        />
+                                    </View>
+                                </View>
                             );
                         }
 
@@ -782,7 +836,12 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         flex: 1,
     },
-    browserBtn: {
+    modalActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.sm,
+    },
+    actionBtn: {
         width: 40,
         height: 40,
         borderRadius: 20,

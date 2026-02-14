@@ -11,7 +11,7 @@ export default function LegalScreen() {
         <View style={styles.container}>
             <Stack.Screen
                 options={{
-                    title: 'Legal Information',
+                    title: 'Informations Légales',
                     headerStyle: { backgroundColor: colors.background },
                     headerTintColor: colors.text,
                     headerLeft: () => (
@@ -23,37 +23,39 @@ export default function LegalScreen() {
             />
             <ScrollView contentContainerStyle={styles.content}>
                 <View style={styles.section}>
-                    <Text style={styles.title}>Privacy Policy</Text>
+                    <Text style={styles.title}>Politique de Confidentialité</Text>
                     <Text style={styles.text}>
-                        Last updated: February 12, 2026{"\n\n"}
-                        At Sport Zone (Eben Tech), we value your privacy. This policy explains how we collect and use your data.{"\n\n"}
-                        1. Data Collection: We collect minimal data required for app functionality, such as notification preferences.{"\n\n"}
-                        2. Third-Party Services: Our app interacts with football data APIs and news providers. These services may have their own privacy policies.{"\n\n"}
-                        3. Cookies: We use local storage (cookies equivalent) to save your preferences and app state.
+                        Dernière mise à jour : 14 février 2026{"\n\n"}
+                        Chez Sport Zone (Eben Tech), nous accordons une grande importance à votre vie privée.{"\n\n"}
+                        1. Collecte de données : Nous collectons uniquement les données techniques minimales nécessaires au fonctionnement de l'application (préférences de notification, état du lecteur).{"\n\n"}
+                        2. Services Tiers : Notre application interagit avec des API de données sportives et des services de streaming. Ces tiers ont leurs propres politiques de confidentialité.{"\n\n"}
+                        3. Stockage Local : Nous utilisons le stockage local pour sauvegarder vos préférences et votre historique de navigation dans l'application.{"\n\n"}
+                        4. Proxy Cloud : Pour assurer la stabilité et la compatibilité audio, les flux de streaming transitent par notre serveur proxy sécurisé sur Oracle Cloud. Aucune donnée personnelle n'est enregistrée lors de ce transit.
                     </Text>
                 </View>
 
                 <View style={styles.section}>
-                    <Text style={styles.title}>Terms of Service</Text>
+                    <Text style={styles.title}>Conditions d'Utilisation</Text>
                     <Text style={styles.text}>
-                        By using Sport Zone, you agree to the following terms:{"\n\n"}
-                        1. Usage: This app is for personal, non-commercial use only.{"\n\n"}
-                        2. Content: Streaming content and news are provided "as is" by external vendors. Eben Tech does not host the streaming content.{"\n\n"}
-                        3. Liability: Eben Tech is not responsible for any inaccuracies in match data or service interruptions.
+                        En utilisant Sport Zone, vous acceptez les conditions suivantes :{"\n\n"}
+                        1. Usage : Cette application est destinée à un usage personnel et non commercial uniquement.{"\n\n"}
+                        2. Propriété du Contenu : Eben Tech ne possède ni n'héberge aucun contenu de streaming. Les flux IPTV sont fournis "tels quels" par des fournisseurs externes.{"\n\n"}
+                        3. Responsabilité : Eben Tech n'est pas responsable des interruptions de service, de la qualité des flux ou des inexactitudes dans les scores en direct.{"\n\n"}
+                        4. Conformité : L'utilisateur est responsable de s'assurer que son utilisation des flux IPTV est conforme aux lois locales de sa juridiction.
                     </Text>
                 </View>
 
                 <View style={styles.section}>
-                    <Text style={styles.title}>Contact Us</Text>
+                    <Text style={styles.title}>Contactez-nous</Text>
                     <Text style={styles.text}>
-                        Company: Eben Tech{"\n"}
-                        Phone: 00228 90884312{"\n"}
-                        Email: akakakpoebenezer03@gmail.com{"\n"}
-                        Address: Lome, Togo
+                        Entreprise : Eben Tech{"\n"}
+                        Téléphone : 00228 90884312{"\n"}
+                        Email : akakakpoebenezer03@gmail.com{"\n"}
+                        Adresse : Lomé, Togo
                     </Text>
                 </View>
 
-                <Text style={styles.footer}>© 2026 Eben Tech. All rights reserved.</Text>
+                <Text style={styles.footer}>© 2026 Eben Tech. Tous droits réservés.</Text>
             </ScrollView>
         </View>
     );

@@ -1,17 +1,28 @@
 {
   "name": "sport-zone",
   "main": "expo-router/entry",
+  "description": "Football Live Streaming App",
+  "author": "Eben-Tech",
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "electron:start": "cross-env ELECTRON_IS_DEV=1 electron main.mjs",
+    "start:windows": "npx expo export --platform web && cross-env ELECTRON_IS_DEV=0 electron main.mjs",
+    "build:web": "expo export --platform web",
+    "build:android": "eas build -p android --profile preview",
+    "build:windows": "npx expo export --platform web && electron-builder"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-navigation/native": "^7.1.8",
+    "axios": "^1.13.5",
+    "cors": "^2.8.6",
+    "electron-is-dev": "^3.0.1",
+    "electron-serve": "^3.0.1",
     "expo": "~54.0.33",
     "expo-av": "^16.0.8",
     "expo-constants": "~18.0.13",
@@ -24,6 +35,7 @@
     "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",
     "expo-web-browser": "~15.0.10",
+    "express": "^5.2.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
@@ -36,8 +48,33 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
+    "cross-env": "^10.1.0",
+    "electron": "^40.4.0",
+    "electron-builder": "^26.7.0",
     "react-test-renderer": "19.1.0",
     "typescript": "~5.9.2"
+  },
+  "build": {
+    "appId": "com.eben245.sportzone",
+    "productName": "Sport Zone",
+    "files": [
+      "dist/**/*",
+      "main.mjs",
+      "assets/images/icon.png"
+    ],
+    "directories": {
+      "output": "dist-electron"
+    },
+    "win": {
+      "target": [
+        "portable",
+        "zip"
+      ],
+      "icon": "assets/images/icon.png"
+    },
+    "extraMetadata": {
+      "main": "main.mjs"
+    }
   },
   "private": true
 }

@@ -34,7 +34,10 @@ export const unstable_settings = {
 SplashScreen.preventAutoHideAsync();
 
 
+import { useMatchNotifications } from '../hooks/useMatchNotifications';
+
 export default function RootLayout() {
+  useMatchNotifications();
   const [loaded, error] = useFonts({
     ...FontAwesome.font,
   });

@@ -1,7 +1,10 @@
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
-import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { borderRadius, colors, fontSize, shadows, spacing } from '../constants/theme';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function CookieBanner() {
     const [visible, setVisible] = useState(false);
@@ -43,13 +46,22 @@ export default function CookieBanner() {
     if (!visible) return null;
 
     return (
-        <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-            <View style={styles.content}>
+        <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
+            <View style={styles.container}>
+                <View style={styles.iconRow}>
+                    <Ionicons name="football" size={40} color={colors.accent} />
+                </View>
+                <Text style={styles.title}>Bienvenue sur Sport Zone ⚽</Text>
                 <Text style={styles.text}>
-                    We use cookies to improve your experience. By using Sport Zone, you agree to our use of cookies.
+                    Votre application tout-en-un pour le sport en direct :{"\n\n"}
+                    📺  Streaming IPTV de chaînes sportives{"\n"}
+                    ⚽  Scores en direct et classements{"\n"}
+                    📰  Actualités football{"\n"}
+                    🔍  Recherche de joueurs et équipes{"\n\n"}
+                    En continuant, vous acceptez notre politique de confidentialité et l'utilisation de cookies pour améliorer votre expérience.
                 </Text>
                 <TouchableOpacity style={styles.button} onPress={acceptConsent}>
-                    <Text style={styles.buttonText}>Accept</Text>
+                    <Text style={styles.buttonText}>C'est parti ! 🚀</Text>
                 </TouchableOpacity>
             </View>
         </Animated.View>
@@ -57,41 +69,56 @@ export default function CookieBanner() {
 }
 
 const styles = StyleSheet.create({
-    container: {
+    overlay: {
         position: 'absolute',
-        bottom: spacing.xxl + 60, // Above tab bar
-        left: spacing.lg,
-        right: spacing.lg,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 99999,
+    },
+    container: {
+        marginHorizontal: spacing.xl,
         backgroundColor: colors.card,
         borderRadius: borderRadius.lg,
-        padding: spacing.lg,
+        padding: spacing.xl,
         borderWidth: 1,
         borderColor: colors.accent,
         ...shadows.card,
-        zIndex: 9999,
+        maxWidth: 400,
+        width: '90%',
     },
-    content: {
-        flexDirection: 'column',
+    iconRow: {
         alignItems: 'center',
-        gap: spacing.md,
+        marginBottom: spacing.md,
+    },
+    title: {
+        color: colors.text,
+        fontSize: fontSize.xl,
+        fontWeight: '800',
+        textAlign: 'center',
+        marginBottom: spacing.md,
     },
     text: {
-        color: colors.text,
-        fontSize: fontSize.sm,
-        textAlign: 'center',
-        lineHeight: 18,
+        color: colors.textSecondary,
+        fontSize: fontSize.md,
+        lineHeight: 24,
+        marginBottom: spacing.lg,
     },
     button: {
         backgroundColor: colors.accent,
         paddingHorizontal: spacing.xl,
-        paddingVertical: spacing.sm,
+        paddingVertical: spacing.md,
         borderRadius: borderRadius.full,
         width: '100%',
         alignItems: 'center',
     },
     buttonText: {
         color: colors.background,
-        fontSize: fontSize.sm,
+        fontSize: fontSize.md,
         fontWeight: '700',
     },
 });

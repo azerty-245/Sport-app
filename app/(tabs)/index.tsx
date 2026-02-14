@@ -8,7 +8,6 @@ import MatchCard from '../../components/MatchCard';
 import { MatchSkeleton } from '../../components/SkeletonCards';
 import { borderRadius, colors, fontSize, shadows, spacing } from '../../constants/theme';
 import { getLiveScores } from '../../services/api';
-import { registerForPushNotificationsAsync, sendLocalNotification } from '../../services/notifications';
 
 export default function LiveScreen() {
   const [matches, setMatches] = useState<any[]>([]);
@@ -27,7 +26,6 @@ export default function LiveScreen() {
 
   // Load subscriptions on mount
   useEffect(() => {
-    registerForPushNotificationsAsync();
     loadSubscriptions();
   }, []);
 
@@ -48,7 +46,7 @@ export default function LiveScreen() {
       newSet.delete(matchId);
     } else {
       newSet.add(matchId);
-      sendLocalNotification('Subscribed! 🔔', 'You will be notified of score changes for this match.');
+      // Notification service will pick this up
     }
     setSubscribedMatches(newSet);
     try {
@@ -60,36 +58,6 @@ export default function LiveScreen() {
     try {
       const data = await getLiveScores();
       const newMatches = data.matches || [];
-
-      // Check for score changes
-      const currentMatches = matchesRef.current;
-      const subscribed = subscribedRef.current;
-
-      if (currentMatches.length > 0 && subscribed.size > 0) {
-        newMatches.forEach((newMatch: any) => {
-          if (subscribed.has(newMatch.id)) {
-            const oldMatch = currentMatches.find(m => m.id === newMatch.id);
-            if (oldMatch) {
-              const scoreChanged = (oldMatch.homeScore != newMatch.homeScore) || (oldMatch.awayScore != newMatch.awayScore);
-              // Ensure not just "0" vs "0" initially if API returns strings/numbers differently
-              if (scoreChanged) {
-                sendLocalNotification(
-                  'Goal! ⚽',
-                  `${newMatch.homeTeam} ${newMatch.homeScore} - ${newMatch.awayScore} ${newMatch.awayTeam}`
-                );
-              }
-
-              // Also check status change (e.g. HT, FT)
-              if (oldMatch.status !== newMatch.status) {
-                sendLocalNotification(
-                  'Match Update ⏱️',
-                  `${newMatch.homeTeam} vs ${newMatch.awayTeam}: ${newMatch.status}`
-                );
-              }
-            }
-          }
-        });
-      }
 
       setMatches(newMatches);
     } catch (err) {

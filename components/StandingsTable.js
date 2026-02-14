@@ -10,8 +10,10 @@ export default function StandingsTable({ standings = [], competition }) {
             {competition && (
                 <Text style={styles.title}>{competition}</Text>
             )}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ minWidth: '100%' }}>
+                <View style={{
+                    width: '100%',
+                }}>
                     {/* Header */}
                     <View style={styles.headerRow}>
                         <Text style={[styles.headerCell, styles.posCol]}>#</Text>
@@ -123,7 +125,8 @@ const styles = StyleSheet.create({
         color: colors.text,
     },
     teamCol: {
-        width: 160,
+        flex: 1,
+        minWidth: 160,
         paddingRight: spacing.sm,
     },
     teamText: {
