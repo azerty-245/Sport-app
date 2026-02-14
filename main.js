@@ -74,12 +74,9 @@ async function createWindow() {
         win.loadURL('http://localhost:8081');
         win.webContents.openDevTools();
     } else {
-        // In production, use electron-serve (loads app://-) 
-        if (loadURL) {
-            await loadURL(win);
-        } else {
-            console.error('loadURL is not defined! Serve initialization failed.');
-        }
+        // In production, load the Vercel URL for instant updates
+        // This means the Windows app is a wrapper for your website
+        win.loadURL('https://sport-app-three-pi.vercel.app/');
     }
 }
 
