@@ -4,8 +4,11 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { LogBox, StyleSheet, Text, View } from 'react-native';
 import 'react-native-reanimated';
+
+// Ignore specific warnings
+LogBox.ignoreLogs(['Listening to push token changes']);
 
 import CookieBanner from '../components/CookieBanner';
 import CustomErrorBoundary from '../components/ErrorBoundary';
