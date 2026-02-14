@@ -49,3 +49,6 @@ test.js
 
 # Build artifacts
 dist-electron/
+
+# Large binaries
+server/ffmpeg.exe
