@@ -5,9 +5,18 @@ const CACHE_KEY = 'iptv_channels_cache_v5'; // v5: really force refresh
 const CACHE_DURATION = 1000 * 60 * 60 * 12; // 12 hours
 
 // Expo inlines EXPO_PUBLIC_* at build time
-const PROXY_URL = Platform.OS === 'web'
-    ? '/api/iptv'
-    : (process.env.EXPO_PUBLIC_PROXY_URL || 'http://152.70.45.91:3005');
+// On Web, checking window.location.origin is safer for Workers which need absolute URLs
+const getProxyUrl = () => {
+    if (Platform.OS === 'web') {
+        if (typeof window !== 'undefined' && window.location) {
+            return `${window.location.origin}/api/iptv`;
+        }
+        return '/api/iptv';
+    }
+    return process.env.EXPO_PUBLIC_PROXY_URL || 'http://152.70.45.91:3005';
+};
+
+const PROXY_URL = getProxyUrl();
 
 console.log('[IPTV] Initialized with Proxy URL:', PROXY_URL); // DEBUG
 
