@@ -20,24 +20,6 @@ app.get('/playlist', async (req, res) => {
     const iptvUrl = process.env.IPTV_URL;
     if (!iptvUrl) return res.status(500).send('IPTV_URL not configured on server');
 
-    console.log('[Proxy] Fetching playlist for client...');
-    try {
-        const response = await axios.get(iptvUrl, {
-            timeout: 10000,
-            headers: { 'User-Agent': 'VLC/3.0.18' }
-        });
-        res.setHeader('Content-Type', 'text/plain');
-        res.send(response.data);
-    } catch (error) {
-        console.error('[Proxy] Playlist fetch failed:', error.message);
-        res.status(502).send('Failed to fetch playlist');
-    }
-});
-
-app.get('/playlist', async (req, res) => {
-    const iptvUrl = process.env.IPTV_URL;
-    if (!iptvUrl) return res.status(500).send('IPTV_URL not configured on server');
-
     console.log('[Proxy] Fetching and rewriting playlist...');
     try {
         const response = await axios.get(iptvUrl, {
@@ -46,15 +28,11 @@ app.get('/playlist', async (req, res) => {
         });
 
         const lines = response.data.split('\n');
-        const host = req.get('host');
-        const protocol = req.protocol;
 
         const rewrittenLines = lines.map(line => {
             const trimmed = line.trim();
             if (trimmed.startsWith('http')) {
-                // Mask the URL using Base64
                 const encodedUrl = Buffer.from(trimmed).toString('base64');
-                // Use relative path so the client can prefix with its own proxy address
                 return `/stream?id=${encodedUrl}`;
             }
             return line;
@@ -71,7 +49,6 @@ app.get('/playlist', async (req, res) => {
 app.get('/stream', async (req, res) => {
     let { url, id } = req.query;
 
-    // Decode ID if provided (masked URL)
     if (id) {
         try {
             url = Buffer.from(id, 'base64').toString('utf-8');
@@ -82,7 +59,7 @@ app.get('/stream', async (req, res) => {
 
     if (!url) return res.status(400).send('Missing "url" or "id"');
 
-    console.log(`[Proxy] Streaming: ${url.substring(0, 50)}...`);
+    console.log(`[Proxy] Streaming: ${url.substring(0, 70)}...`);
 
     // Standard headers
     res.setHeader('Access-Control-Allow-Origin', '*');
