@@ -13,10 +13,13 @@ module.exports = (req, res) => {
             '^/api/scores': '/api/v1', // Map /api/scores to /api/v1
         },
         onProxyReq: (proxyReq, req, res) => {
-            // Remove headers that might trigger anti-scraping/CORS protection
+            // Mimic a real browser request more closely
             proxyReq.removeHeader('Referer');
             proxyReq.removeHeader('Origin');
-            proxyReq.setHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+            proxyReq.setHeader('Host', 'api.sofascore.com');
+            proxyReq.setHeader('User-Agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+            proxyReq.setHeader('Accept', 'application/json, text/plain, */*');
+            proxyReq.setHeader('Accept-Language', 'en-US,en;q=0.9');
         },
         onProxyRes: (proxyRes, req, res) => {
             // Add CORS headers to allow browser access

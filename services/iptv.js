@@ -38,6 +38,7 @@ export const getIPTVChannels = async () => {
         if (!response.ok) throw new Error('Failed to fetch IPTV playlist');
 
         const text = await response.text();
+        console.log('[IPTV] Response preview:', text.substring(0, 200)); // DEBUG: See what we actually got
         const lines = text.split('\n');
         const channels = [];
         let currentChannel = {};
