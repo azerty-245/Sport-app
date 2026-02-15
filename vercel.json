@@ -5,10 +5,6 @@
             "destination": "/api/iptv.js"
         },
         {
-            "source": "/api/scores/(.*)",
-            "destination": "/api/scores.js"
-        },
-        {
             "source": "/(.*)",
             "destination": "/index.html"
         }
