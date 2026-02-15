@@ -6,14 +6,15 @@
 
 ## 🔥 Fonctionnalités Principales
 
-### 📺 Live Streaming
+### 📺 Live Streaming & Monétisation
 - **IPTV Intégré** : Accès aux chaînes sportives (Canal+, beIN, RMC, etc.) via un proxy sécurisé.
 - **Proxy Oracle Cloud** : Contourne les blocages CORS et assure la stabilité (transcodage FFmpeg AAC).
-- **Lecteur optimisé** : Buffer intelligent (5s) pour éviter les coupures.
+- **Monétisation Android** : Publicités Start.io intégrées pour l'APK (App ID : 201699988).
+- **Monétisation Web** : Publicités Monetag (Contenu vérifié).
 
 ### ⚽️ Scores & Stats
-- **Traqueurs en direct** : Scores mis à jour en temps réel pour toutes les ligues majeures (Ligue 1, Premier League, Liga, etc.).
-- **Recherche Avancée** : Fiches détaillées pour joueurs (valeur marchande, contrat, stats physiques) et équipes (stade, staff, historique).
+- **Traqueurs en direct** : Scores mis à jour en temps réel via SofaScore et OpenLigaDB.
+- **Recherche Avancée** : Fiches détaillées pour joueurs et équipes.
 
 ### 📰 Actualités
 - **Flux continu** : Dernières news football traduites en français.
@@ -37,8 +38,9 @@
 
 ### 🔒 Sécurité
 - **Obfuscation** : Code minifié en production.
-- **Variables d'environnement** : `EXPO_PUBLIC_*` injectées au build (pas de secrets dans le code source).
-- **Git** : Fichiers sensibles (`ffmpeg.exe`, `.env`, scripts de test) exclus du dépôt.
+- **Variables d'environnement** : `EXPO_PUBLIC_*` injectées au build.
+- **Nettoyage IP** : Aucune adresse IP privée ou clé API n'est exposée dans le code source.
+- **Git** : Fichiers sensibles exclus du dépôt.
 
 ---
 

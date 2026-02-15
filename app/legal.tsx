@@ -28,15 +28,21 @@ export default function LegalScreen() {
                         Dernière mise à jour : 14 février 2026{"\n\n"}
                         Chez Sport Zone (Eben Tech), nous accordons une grande importance à votre vie privée.{"\n\n"}
                     </Text>
-                    <Text style={styles.sectionTitle}>1. Collecte des Données</Text>
+                    <Text style={styles.sectionTitle}>1. Partenaires publicitaires et stockage des données</Text>
+                    <Text style={styles.paragraph}>
+                        • <Text style={styles.bold}>Vercel Analytics</Text> : Pour mesurer l'audience de la version Web.{"\n"}
+                        • <Text style={styles.bold}>Start.io</Text> : Partenaire publicitaire pour la version Android.{"\n"}
+                        • <Text style={styles.bold}>Monetag</Text> : Partenaire publicitaire pour la version Web.{"\n"}
+                        • <Text style={styles.bold}>Stockage local</Text> : Pour mémoriser vos préférences et le cache IPTV.
+                    </Text>
+
+                    <Text style={styles.sectionTitle}>2. Collecte des Données</Text>
                     <Text style={styles.paragraph}>
                         Nous collectons un minimum de données pour assurer le bon fonctionnement de l'application :
                         {"\n"}- **Données techniques** : Type d'appareil, système d'exploitation, pays de connexion (via l'adresse IP anonymisée).
                         {"\n"}- **Statistiques d'utilisation** : Pages visitées et temps passé sur l'application (via Vercel Analytics). Ces données sont anonymes et servent uniquement à améliorer nos services.
                         {"\n"}- **Préférences** : Vos choix de notifications (équipes suivies) sont stockés localement sur votre appareil.
                     </Text>
-
-                    <Text style={styles.sectionTitle}>2. Utilisation des Données</Text>
                     <Text style={styles.paragraph}>
                         Les données collectées sont utilisées exclusivement pour :
                         {"\n"}- Analyser la performance de l'application et corriger les bugs.
@@ -83,8 +89,8 @@ export default function LegalScreen() {
                 </View>
 
                 <Text style={styles.footer}>© 2026 Eben Tech. Tous droits réservés.</Text>
-            </ScrollView>
-        </View>
+            </ScrollView >
+        </View >
     );
 }
 
@@ -128,6 +134,10 @@ const styles = StyleSheet.create({
         fontSize: fontSize.sm,
         lineHeight: 20,
         marginBottom: spacing.md,
+    },
+    bold: {
+        fontWeight: 'bold',
+        color: colors.accent,
     },
     footer: {
         color: colors.textMuted,

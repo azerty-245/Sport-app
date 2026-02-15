@@ -28,10 +28,11 @@ Un système de mise à jour "invisible" a été mis en place.
 - **Git** : Nettoyage strict des fichiers sensibles et binaires lourds (`ffmpeg.exe`) pour un dépôt propre.
 
 ## 🚀 État Actuel
-- **Web** : 🟢 Déployé sur Vercel (`sport-app.vercel.app`).
-- **Android** : 🟢 APK généré et fonctionnel.
-- **Windows** : 🟢 Build Electron prêt.
-- **Contenu** : 🟢 News, Scores, Recherche et Streaming opérationnels.
+- **Web** : 🟢 Déployé sur Vercel (Monétisation Monetag active).
+- **Android** : 🟢 APK généré avec publicités Start.io intégrées.
+- **Windows** : 🟢 Build Electron prêt et sécurisé.
+- **Sécurité** : 🟢 Toutes les IPs privées ont été retirées du code source.
+- **Légal** : 🟢 Politique de confidentialité à jour incluant les partenaires pub.
 
 ## � Prochaines Étapes Possibles
 - Ajouter des notifications Push pour les buts (via Expo Notifications).
@@ -39,4 +40,4 @@ Un système de mise à jour "invisible" a été mis en place.
 - Ajouter un chat en direct pendant les matchs.
 
 ---
-*Document généré le 14/02/2026 - Version 1.0.0*
+*Dernière mise à jour : 15/02/2026 - Version 1.1.0*

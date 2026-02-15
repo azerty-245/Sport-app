@@ -13,14 +13,14 @@ const getProxyUrl = () => {
         }
         return '/api/iptv';
     }
-    return process.env.EXPO_PUBLIC_PROXY_URL || 'http://152.70.45.91:3005';
+    return process.env.EXPO_PUBLIC_PROXY_URL || '';
 };
 
 const PROXY_URL = getProxyUrl();
 
 console.log('[IPTV] Initialized with Proxy URL:', PROXY_URL); // DEBUG
 
-const IPTV_URL = process.env.EXPO_PUBLIC_IPTV_URL || 'http://vipkentken.top:8080/get.php?username=VIP014991763158752117&password=879ce578d38b&type=m3u';
+const IPTV_URL = process.env.EXPO_PUBLIC_IPTV_URL || '';
 
 export const getIPTVChannels = async () => {
     try {
