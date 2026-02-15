@@ -4,7 +4,7 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 // This allows the HTTPS Vercel site to talk to the HTTP proxy without Mixed Content errors.
 
 module.exports = (req, res) => {
-    const target = process.env.EXPO_PUBLIC_PROXY_URL; // http://152.70.45.91:3005
+    const target = process.env.EXPO_PUBLIC_PROXY_URL;
 
     if (!target) {
         res.status(500).json({ error: 'EXPO_PUBLIC_PROXY_URL not defined' });
