@@ -39,6 +39,8 @@ SplashScreen.preventAutoHideAsync();
 
 import { useMatchNotifications } from '../hooks/useMatchNotifications';
 
+import { Analytics } from '@vercel/analytics/react';
+
 export default function RootLayout() {
   useMatchNotifications();
   const [loaded, error] = useFonts({
@@ -68,6 +70,8 @@ export default function RootLayout() {
         </Stack>
         <OfflineBanner />
         <CookieBanner />
+        {/* Vercel Analytics - Tracks Web and Windows (Remote) users */}
+        <Analytics />
       </ThemeProvider>
     </CustomErrorBoundary>
   );
