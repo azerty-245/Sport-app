@@ -125,7 +125,12 @@ export default function StreamingScreen() {
 
         let targetStream;
         if (type === 'channel') {
-            targetStream = { title: 'Main', url: item.url };
+            const rawUrl = item.url;
+            // Force proxy even for API channels if not already proxied
+            const finalUrl = rawUrl.includes('/api/iptv/stream') || rawUrl.includes(':3005/stream')
+                ? rawUrl
+                : `${PROXY_URL}/stream?url=${encodeURIComponent(rawUrl)}`;
+            targetStream = { title: 'Direct', url: finalUrl };
         } else {
             targetStream = item.streams?.[activeStreamIndex] || item.streams?.[0];
         }
