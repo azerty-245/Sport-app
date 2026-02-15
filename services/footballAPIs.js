@@ -3,14 +3,10 @@
  * Sources: SofaScore (worldwide live), OpenLigaDB (Bundesliga)
  */
 
-import { Platform } from 'react-native';
 
 // SofaScore API (Live Scores)
-// On Web, we must use our Vercel proxy (/api/scores) to avoid CORS.
-// On Native, we go direct.
-const SOFASCORE_LIVE_URL = Platform.OS === 'web'
-    ? '/api/scores/sport/football/events/live'
-    : 'https://api.sofascore.com/api/v1/sport/football/events/live';
+// We revert to direct API call. On Web this might fail due to CORS, but the Proxy approach was blocked (403).
+const SOFASCORE_LIVE_URL = 'https://api.sofascore.com/api/v1/sport/football/events/live';
 const OPENLIGA_BASE_URL = 'https://api.openligadb.de';
 
 /**

@@ -15,13 +15,15 @@ const IPTV_URL = process.env.EXPO_PUBLIC_IPTV_URL || 'http://vipkentken.top:8080
 
 export const getIPTVChannels = async () => {
     try {
-        // Check cache first
-        const cachedData = await AsyncStorage.getItem(CACHE_KEY);
-        if (cachedData) {
-            const { timestamp, channels } = JSON.parse(cachedData);
-            if (Date.now() - timestamp < CACHE_DURATION) {
-                console.log('Returning cached IPTV channels');
-                return channels;
+        // Check cache first (DISABLED ON WEB to ensure fresh proxy usage)
+        if (Platform.OS !== 'web') {
+            const cachedData = await AsyncStorage.getItem(CACHE_KEY);
+            if (cachedData) {
+                const { timestamp, channels } = JSON.parse(cachedData);
+                if (Date.now() - timestamp < CACHE_DURATION) {
+                    console.log('Returning cached IPTV channels');
+                    return channels;
+                }
             }
         }
 
