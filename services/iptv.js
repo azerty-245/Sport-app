@@ -36,18 +36,11 @@ export const getIPTVChannels = async () => {
             }
         }
 
-        let url = IPTV_URL;
-        if (!url) {
-            console.error('[IPTV] No IPTV URL found. Check .env EXPO_PUBLIC_IPTV_URL');
-            return [];
-        }
+        // Secure fetch: We call /playlist and the proxy adds the secret IPTV_URL on the server side.
+        const playlistUrl = `${PROXY_URL}/playlist`;
 
-        // Use Oracle Cloud Proxy to bypass CORS for the playlist fetch
-        // We use a separate flag or parameter to tell the proxy NOT to use FFmpeg for the M3U text file
-        const proxiedPlaylistUrl = `${PROXY_URL}/stream?url=${encodeURIComponent(IPTV_URL)}&nocode=true`;
-
-        console.log('[IPTV] Fetching IPTV playlist via Proxy...');
-        const response = await fetch(proxiedPlaylistUrl);
+        console.log('[IPTV] Fetching IPTV playlist securely via Proxy...');
+        const response = await fetch(playlistUrl);
         if (!response.ok) throw new Error('Failed to fetch IPTV playlist');
 
         const text = await response.text();
@@ -72,10 +65,10 @@ export const getIPTVChannels = async () => {
                 const group = groupMatch ? groupMatch[1] : 'Uncategorized';
 
                 currentChannel = { name, logo, group };
-            } else if (line.startsWith('http')) {
-                // IMPORTANT: Proxy the individual channel stream URL too!
-                // This ensures transcoding happens when the channel is played.
-                currentChannel.url = `${PROXY_URL}/stream?url=${encodeURIComponent(line)}`;
+            } else if (line.startsWith('http') || line.startsWith('/stream')) {
+                // IMPORTANT: Use the URL from the proxy.
+                // If the proxy rewrote it to a relative path, prefix it with PROXY_URL.
+                currentChannel.url = line.startsWith('/') ? `${PROXY_URL}${line}` : line;
 
                 const nameUpper = currentChannel.name?.toUpperCase() || '';
                 const groupUpper = currentChannel.group?.toUpperCase() || '';
