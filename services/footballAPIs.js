@@ -4,18 +4,25 @@
  */
 
 
+import { PROXY_URL } from './iptv';
+
 // SofaScore API (Live Scores)
-// We revert to direct API call. On Web this might fail due to CORS, but the Proxy approach was blocked (403).
 const SOFASCORE_LIVE_URL = 'https://api.sofascore.com/api/v1/sport/football/events/live';
 const OPENLIGA_BASE_URL = 'https://api.openligadb.de';
 
 /**
  * Fetches live football matches worldwide from SofaScore.
- * No API key needed. Returns normalized match objects.
+ * We use the Oracle Proxy to bypass 403 blocks and CORS.
  */
 export async function fetchSofaScoreLive() {
     try {
-        const response = await fetch(SOFASCORE_LIVE_URL, {
+        if (!PROXY_URL) {
+            console.warn('No Proxy URL available for SofaScore proxying');
+        }
+
+        const proxiedUrl = `${PROXY_URL}/stream?url=${encodeURIComponent(SOFASCORE_LIVE_URL)}&nocode=true`;
+
+        const response = await fetch(proxiedUrl, {
             headers: {
                 'Accept': 'application/json',
             }

@@ -95,7 +95,13 @@ export default function StreamingScreen() {
         fetchData();
     };
 
-    // Filtered channels (fuzzy search, only after submit)
+    // Filtered matches (from PrinceTech)
+    const filteredMatches = useMemo(() => {
+        if (!channelSearchQuery.trim()) return matches;
+        return matches.filter(m => fuzzyMatch(m.homeTeam || '' + m.awayTeam, channelSearchQuery.trim()));
+    }, [matches, channelSearchQuery]);
+
+    // Filtered channels (from IPTV)
     const filteredChannels = useMemo(() => {
         if (!channelSearchQuery.trim()) return channels;
         return channels.filter(c => fuzzyMatch(c.name || '', channelSearchQuery.trim()));
@@ -250,9 +256,18 @@ export default function StreamingScreen() {
                 player.load();
                 player.play().catch(function(e) { console.log('Autoplay blocked:', e); });
                 player.on(mpegts.Events.ERROR, function(errType, errDetail) {
-                  console.warn('mpegts error, trying HLS fallback:', errType, errDetail);
-                  player.destroy();
-                  tryHLS();
+                   console.warn('mpegts error:', errType, errDetail);
+                   // Silently handle SourceBuffer removal or fatal errors by trying HLS
+                   try {
+                     player.destroy();
+                   } catch(e) {}
+                   tryHLS();
+                });
+                // Catch any underlying MSE errors
+                video.addEventListener('error', function(e) {
+                   if (video.error && video.error.code === 4) { // MEDIA_ERR_SRC_NOT_SUPPORTED
+                      tryHLS();
+                   }
                 });
                 video.addEventListener('playing', hideStatus);
               } else {
@@ -416,9 +431,12 @@ export default function StreamingScreen() {
                 return (
                     <FlatList
                         ref={flatListRef}
-                        data={filteredChannels}
+                        data={[
+                            ...filteredMatches.map(m => ({ ...m, isPrinceMatch: true })),
+                            ...filteredChannels
+                        ]}
                         keyExtractor={(item, index) => (item.id || item.url || item.name || '') + index}
-                        renderItem={renderChannelItem}
+                        renderItem={({ item }) => item.isPrinceMatch ? renderMatchItem({ item }) : renderChannelItem({ item })}
                         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
                         contentContainerStyle={styles.list}
                         showsVerticalScrollIndicator={false}
@@ -430,7 +448,7 @@ export default function StreamingScreen() {
                                         <Ionicons name="search" size={18} color={colors.textMuted} />
                                         <TextInput
                                             style={styles.searchInput}
-                                            placeholder="Search channels (e.g. beIN, ESPN)..."
+                                            placeholder="Rechercher (BeIN, Canal, Foot...)"
                                             placeholderTextColor={colors.textMuted}
                                             value={channelSearchQuery}
                                             onChangeText={setChannelSearchQuery}
@@ -445,12 +463,12 @@ export default function StreamingScreen() {
                                 </View>
                                 {channelSearchQuery.trim() ? (
                                     <Text style={styles.searchResultsText}>
-                                        {filteredChannels.length} result{filteredChannels.length !== 1 ? 's' : ''} for "{channelSearchQuery}"
+                                        {filteredMatches.length + filteredChannels.length} résultat{(filteredMatches.length + filteredChannels.length) !== 1 ? 's' : ''} pour "{channelSearchQuery}"
                                     </Text>
                                 ) : (
                                     <View style={styles.tabHeader}>
                                         <Ionicons name="tv" size={20} color={colors.accent} />
-                                        <Text style={styles.tabHeaderText}>{channels.length} Channels Available</Text>
+                                        <Text style={styles.tabHeaderText}>{matches.length} Matchs Live & {channels.length} Chaînes TV</Text>
                                     </View>
                                 )}
                             </View>
@@ -459,10 +477,10 @@ export default function StreamingScreen() {
                             <View style={styles.emptyContainer}>
                                 <Ionicons name="tv-outline" size={64} color={colors.textMuted} />
                                 <Text style={styles.emptyText}>
-                                    {channelSearchQuery.trim() ? `No channels matching "${channelSearchQuery}"` : 'No channels available'}
+                                    {channelSearchQuery.trim() ? `Aucun flux trouvé pour "${channelSearchQuery}"` : 'Aucun flux disponible'}
                                 </Text>
                                 <Text style={styles.emptySubText}>
-                                    {channelSearchQuery.trim() ? 'Try a different search term' : 'Pull to refresh'}
+                                    {channelSearchQuery.trim() ? 'Essayez un autre mot-clé' : 'Tirez pour actualiser'}
                                 </Text>
                             </View>
                         }

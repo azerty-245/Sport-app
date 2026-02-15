@@ -16,7 +16,7 @@ const getProxyUrl = () => {
     return process.env.EXPO_PUBLIC_PROXY_URL || '';
 };
 
-const PROXY_URL = getProxyUrl();
+export const PROXY_URL = getProxyUrl();
 
 console.log('[IPTV] Initialized with Proxy URL:', PROXY_URL); // DEBUG
 
