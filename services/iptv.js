@@ -1,13 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-const CACHE_KEY = 'iptv_channels_cache_v4'; // v4: force refresh for Web HTTPS proxy
+const CACHE_KEY = 'iptv_channels_cache_v5'; // v5: really force refresh
 const CACHE_DURATION = 1000 * 60 * 60 * 12; // 12 hours
 
 // Expo inlines EXPO_PUBLIC_* at build time
 const PROXY_URL = Platform.OS === 'web'
     ? '/api/iptv'
     : (process.env.EXPO_PUBLIC_PROXY_URL || 'http://152.70.45.91:3005');
+
+console.log('[IPTV] Initialized with Proxy URL:', PROXY_URL); // DEBUG
 
 const IPTV_URL = process.env.EXPO_PUBLIC_IPTV_URL || 'http://vipkentken.top:8080/get.php?username=VIP014991763158752117&password=879ce578d38b&type=m3u';
 
