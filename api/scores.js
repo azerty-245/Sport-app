@@ -12,8 +12,14 @@ module.exports = (req, res) => {
         pathRewrite: {
             '^/api/scores': '/api/v1', // Map /api/scores to /api/v1
         },
+        onProxyReq: (proxyReq, req, res) => {
+            // Remove headers that might trigger anti-scraping/CORS protection
+            proxyReq.removeHeader('Referer');
+            proxyReq.removeHeader('Origin');
+            proxyReq.setHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+        },
         onProxyRes: (proxyRes, req, res) => {
-            // Add CORS headers
+            // Add CORS headers to allow browser access
             proxyRes.headers['Access-Control-Allow-Origin'] = '*';
         },
     });
