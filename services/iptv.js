@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-const CACHE_KEY = 'iptv_channels_cache_v3'; // v3: fixed env var access
+const CACHE_KEY = 'iptv_channels_cache_v4'; // v4: force refresh for Web HTTPS proxy
 const CACHE_DURATION = 1000 * 60 * 60 * 12; // 12 hours
 
 // Expo inlines EXPO_PUBLIC_* at build time
