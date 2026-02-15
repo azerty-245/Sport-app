@@ -41,6 +41,8 @@ import { useMatchNotifications } from '../hooks/useMatchNotifications';
 
 import { Analytics } from '@vercel/analytics/react';
 
+import StartIoBanner from '../components/StartIoBanner';
+
 export default function RootLayout() {
   useMatchNotifications();
   const [loaded, error] = useFonts({
@@ -64,14 +66,18 @@ export default function RootLayout() {
   return (
     <CustomErrorBoundary>
       <ThemeProvider value={DarkTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="legal" options={{ presentation: 'modal' }} />
-        </Stack>
-        <OfflineBanner />
-        <CookieBanner />
-        {/* Vercel Analytics - Tracks Web and Windows (Remote) users */}
-        <Analytics />
+        <View style={{ flex: 1 }}>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="legal" options={{ presentation: 'modal' }} />
+          </Stack>
+          <OfflineBanner />
+          <CookieBanner />
+          {/* Vercel Analytics - Tracks Web and Windows (Remote) users */}
+          <Analytics />
+          {/* Start.io Ads - Visible on Android APK build */}
+          <StartIoBanner />
+        </View>
       </ThemeProvider>
     </CustomErrorBoundary>
   );
