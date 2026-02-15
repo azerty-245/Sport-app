@@ -27,10 +27,37 @@ export default function LegalScreen() {
                     <Text style={styles.text}>
                         Dernière mise à jour : 14 février 2026{"\n\n"}
                         Chez Sport Zone (Eben Tech), nous accordons une grande importance à votre vie privée.{"\n\n"}
-                        1. Collecte de données : Nous collectons uniquement les données techniques minimales nécessaires au fonctionnement de l'application (préférences de notification, état du lecteur).{"\n\n"}
-                        2. Services Tiers : Notre application interagit avec des API de données sportives et des services de streaming. Ces tiers ont leurs propres politiques de confidentialité.{"\n\n"}
-                        3. Stockage Local : Nous utilisons le stockage local pour sauvegarder vos préférences et votre historique de navigation dans l'application.{"\n\n"}
-                        4. Proxy Cloud : Pour assurer la stabilité et la compatibilité audio, les flux de streaming transitent par notre serveur proxy sécurisé sur Oracle Cloud. Aucune donnée personnelle n'est enregistrée lors de ce transit.
+                    </Text>
+                    <Text style={styles.sectionTitle}>1. Collecte des Données</Text>
+                    <Text style={styles.paragraph}>
+                        Nous collectons un minimum de données pour assurer le bon fonctionnement de l'application :
+                        {"\n"}- **Données techniques** : Type d'appareil, système d'exploitation, pays de connexion (via l'adresse IP anonymisée).
+                        {"\n"}- **Statistiques d'utilisation** : Pages visitées et temps passé sur l'application (via Vercel Analytics). Ces données sont anonymes et servent uniquement à améliorer nos services.
+                        {"\n"}- **Préférences** : Vos choix de notifications (équipes suivies) sont stockés localement sur votre appareil.
+                    </Text>
+
+                    <Text style={styles.sectionTitle}>2. Utilisation des Données</Text>
+                    <Text style={styles.paragraph}>
+                        Les données collectées sont utilisées exclusivement pour :
+                        {"\n"}- Analyser la performance de l'application et corriger les bugs.
+                        {"\n"}- Vous envoyer des notifications de matchs (si activées).
+                        {"\n"}- Adapter l'interface à votre appareil.
+                        {"\n"}Aucune donnée personnelle n'est vendue ou partagée à des tiers publicitaires.
+                    </Text>
+
+                    <Text style={styles.sectionTitle}>3. Vos Droits</Text>
+                    <Text style={styles.paragraph}>
+                        Conformément au RGPD :
+                        {"\n"}- Vous pouvez désactiver le suivi analytique en nous contactant.
+                        {"\n"}- Vous pouvez gérer vos préférences de cookies via le bandeau dédié.
+                        {"\n"}- Vous pouvez supprimer l'application à tout moment, ce qui effacera toutes les données locales.
+                        {"\n"}Pour toute demande, contactez-nous à : support@sport-zone.app
+                    </Text>
+
+                    <Text style={styles.sectionTitle}>4. Hébergement</Text>
+                    <Text style={styles.paragraph}>
+                        Le site web et l'API sont hébergés par Vercel Inc. aux États-Unis et en Europe.
+                        Les flux vidéo sont relayés par notre infrastructure sécurisée (Oracle Cloud).
                     </Text>
                 </View>
 
@@ -88,6 +115,19 @@ const styles = StyleSheet.create({
         color: colors.text,
         fontSize: fontSize.md,
         lineHeight: 22,
+    },
+    sectionTitle: {
+        color: colors.accent,
+        fontSize: fontSize.md,
+        fontWeight: '700',
+        marginTop: spacing.lg,
+        marginBottom: spacing.sm,
+    },
+    paragraph: {
+        color: colors.text,
+        fontSize: fontSize.sm,
+        lineHeight: 20,
+        marginBottom: spacing.md,
     },
     footer: {
         color: colors.textMuted,
