@@ -95,12 +95,6 @@ export default function StreamingScreen() {
         fetchData();
     };
 
-    // Filtered matches (from PrinceTech)
-    const filteredMatches = useMemo(() => {
-        if (!channelSearchQuery.trim()) return matches;
-        return matches.filter(m => fuzzyMatch(m.homeTeam || '' + m.awayTeam, channelSearchQuery.trim()));
-    }, [matches, channelSearchQuery]);
-
     // Filtered channels (from IPTV)
     const filteredChannels = useMemo(() => {
         if (!channelSearchQuery.trim()) return channels;
@@ -431,12 +425,9 @@ export default function StreamingScreen() {
                 return (
                     <FlatList
                         ref={flatListRef}
-                        data={[
-                            ...filteredMatches.map(m => ({ ...m, isPrinceMatch: true })),
-                            ...filteredChannels
-                        ]}
+                        data={filteredChannels}
                         keyExtractor={(item, index) => (item.id || item.url || item.name || '') + index}
-                        renderItem={({ item }) => item.isPrinceMatch ? renderMatchItem({ item }) : renderChannelItem({ item })}
+                        renderItem={renderChannelItem}
                         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
                         contentContainerStyle={styles.list}
                         showsVerticalScrollIndicator={false}
@@ -448,7 +439,7 @@ export default function StreamingScreen() {
                                         <Ionicons name="search" size={18} color={colors.textMuted} />
                                         <TextInput
                                             style={styles.searchInput}
-                                            placeholder="Rechercher (BeIN, Canal, Foot...)"
+                                            placeholder="Rechercher une chaîne (BeIN, Canal...)"
                                             placeholderTextColor={colors.textMuted}
                                             value={channelSearchQuery}
                                             onChangeText={setChannelSearchQuery}
@@ -463,12 +454,12 @@ export default function StreamingScreen() {
                                 </View>
                                 {channelSearchQuery.trim() ? (
                                     <Text style={styles.searchResultsText}>
-                                        {filteredMatches.length + filteredChannels.length} résultat{(filteredMatches.length + filteredChannels.length) !== 1 ? 's' : ''} pour "{channelSearchQuery}"
+                                        {filteredChannels.length} résultat{filteredChannels.length !== 1 ? 's' : ''} pour "{channelSearchQuery}"
                                     </Text>
                                 ) : (
                                     <View style={styles.tabHeader}>
                                         <Ionicons name="tv" size={20} color={colors.accent} />
-                                        <Text style={styles.tabHeaderText}>{matches.length} Matchs Live & {channels.length} Chaînes TV</Text>
+                                        <Text style={styles.tabHeaderText}>{channels.length} Chaînes TV Disponibles</Text>
                                     </View>
                                 )}
                             </View>
@@ -477,7 +468,7 @@ export default function StreamingScreen() {
                             <View style={styles.emptyContainer}>
                                 <Ionicons name="tv-outline" size={64} color={colors.textMuted} />
                                 <Text style={styles.emptyText}>
-                                    {channelSearchQuery.trim() ? `Aucun flux trouvé pour "${channelSearchQuery}"` : 'Aucun flux disponible'}
+                                    {channelSearchQuery.trim() ? `Aucune chaîne trouvée pour "${channelSearchQuery}"` : 'Aucune chaîne disponible'}
                                 </Text>
                                 <Text style={styles.emptySubText}>
                                     {channelSearchQuery.trim() ? 'Essayez un autre mot-clé' : 'Tirez pour actualiser'}

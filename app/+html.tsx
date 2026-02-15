@@ -41,8 +41,9 @@ export default function Root({ children }: { children: React.ReactNode }) {
         */}
                 <ScrollViewStyleReset />
 
-                {/* Monetag MultiTag Ads - Smart Auto Monetization */}
+                {/* Monetag MultiTag Ads - Temporarily Disabled
                 <script src="https://quge5.com/88/tag.min.js" data-zone="211479" async data-cfasync="false"></script>
+                */}
 
                 {/* Add any additional <head> elements that you want globally available on web... */}
             </head>

@@ -41,7 +41,6 @@ import { useMatchNotifications } from '../hooks/useMatchNotifications';
 
 import { Analytics } from '@vercel/analytics/react';
 
-import StartIoBanner from '../components/StartIoBanner';
 
 export default function RootLayout() {
   useMatchNotifications();
@@ -75,8 +74,9 @@ export default function RootLayout() {
           <CookieBanner />
           {/* Vercel Analytics - Tracks Web and Windows (Remote) users */}
           <Analytics />
-          {/* Start.io Ads - Visible on Android APK build */}
-          <StartIoBanner />
+          {/* Start.io Ads - Temporarily Disabled
+          <StartIoBanner /> 
+          */}
         </View>
       </ThemeProvider>
     </CustomErrorBoundary>
