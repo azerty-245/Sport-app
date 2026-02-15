@@ -19,6 +19,7 @@
     "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-navigation/native": "^7.1.8",
+    "@vercel/analytics": "^1.6.1",
     "axios": "^1.13.5",
     "cors": "^2.8.6",
     "electron-is-dev": "^3.0.1",
