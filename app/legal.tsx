@@ -79,11 +79,17 @@ export default function LegalScreen() {
                 </View>
 
                 <View style={styles.section}>
-                    <Text style={styles.title}>Contactez-nous</Text>
+                    <Text style={styles.title}>Licence</Text>
                     <Text style={styles.text}>
-                        Entreprise : Eben Tech{"\n"}
-                        Téléphone : 00228 90884312{"\n"}
-                        Email : akakakpoebenezer03@gmail.com
+                        Sport Zone est distribué sous la Licence Digitale Standard d'Eben Tech. Cette licence autorise l'usage personnel et non-commercial du logiciel. Toute redistribution ou modification sans autorisation préalable est strictement interdite.
+                    </Text>
+                </View>
+
+                <View style={styles.section}>
+                    <Text style={styles.title}>Contact</Text>
+                    <Text style={styles.text}>
+                        Éditeur : Eben Tech{"\n"}
+                        Disponibilité : Support via l'application
                     </Text>
                 </View>
 
