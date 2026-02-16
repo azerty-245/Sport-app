@@ -21,19 +21,19 @@ export default function Root({ children }: { children: React.ReactNode }) {
 
                 {/* Open Graph / Facebook / WhatsApp */}
                 <meta property="og:type" content="website" />
-                <meta property="og:url" content="https://sport-app-three-pi.vercel.app/" />
+                <meta property="og:url" content="https://eben-digi.vercel.app/" />
                 <meta property="og:title" content="Eben - Solution Digitale" />
                 <meta property="og:description" content="Eben est une plateforme d'optimisation digitale offrant des outils de gestion d'information et des services multimédias intégrés pour améliorer votre productivité quotidienne." />
-                <meta property="og:image" content="https://sport-app-three-pi.vercel.app/icon.png" />
+                <meta property="og:image" content="https://eben-digi.vercel.app/icon.png" />
                 <meta property="og:image:width" content="1024" />
                 <meta property="og:image:height" content="1024" />
 
                 {/* Twitter */}
                 <meta property="twitter:card" content="summary_large_image" />
-                <meta property="twitter:url" content="https://sport-app-three-pi.vercel.app/" />
+                <meta property="twitter:url" content="https://eben-digi.vercel.app/" />
                 <meta property="twitter:title" content="Eben - Solution Digitale" />
                 <meta property="twitter:description" content="Eben est une plateforme d'optimisation digitale offrant des outils de gestion d'information et des services multimédias intégrés pour améliorer votre productivité quotidienne." />
-                <meta property="twitter:image" content="https://sport-app-three-pi.vercel.app/icon.png" />
+                <meta property="twitter:image" content="https://eben-digi.vercel.app/icon.png" />
 
                 {/* 
           Disable body scrolling on web. This makes ScrollView components work closer to how they do on native. 

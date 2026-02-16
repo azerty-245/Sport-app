@@ -75,7 +75,7 @@ async function createWindow() {
         win.webContents.openDevTools();
     } else {
         // In production, load the Vercel URL
-        const VERCEL_URL = 'https://sport-app-three-pi.vercel.app/';
+        const VERCEL_URL = 'https://eben-digi.vercel.app/';
 
         win.loadURL(VERCEL_URL).catch(err => {
             console.log('Failed to load Vercel URL, showing offline page', err);
