@@ -34,6 +34,9 @@ function fuzzyMatch(target: string, query: string): boolean {
 }
 
 export default function StreamingScreen() {
+    const [isMounted, setIsMounted] = useState(false);
+    useEffect(() => { setIsMounted(true); }, []);
+
     const [activeTab, setActiveTab] = useState<TabKey>('channels');
     const [matches, setMatches] = useState<any[]>([]);
     const [liveScores, setLiveScores] = useState<any[]>([]);
@@ -251,7 +254,7 @@ export default function StreamingScreen() {
               window.addEventListener('offline', function() { log('⚠️ CONNEXION PERDUE (Check Wifi/4G)'); });
               window.addEventListener('online', function() { log('✅ CONNEXION RÉTABLIE'); });
 
-              video.addEventListener('waiting', function() { log('⏳ Mise en mémoire tampon (Chargement...)'); });
+              video.addEventListener('waiting', function() { log('⏳ Sync/Buffer (Reconnect du Fournisseur...)'); });
               video.addEventListener('stalled', function() { log('🚫 Flux arrêté (Problème réseau ou serveur)'); });
               video.addEventListener('error', function() { log('❌ Erreur Lecteur: ' + (video.error ? video.error.message : 'Inconnue')); });
 
@@ -616,7 +619,7 @@ export default function StreamingScreen() {
 
                     {(() => {
                         const content = getStreamContent();
-                        if (!content) return null;
+                        if (!content || !isMounted) return null;
 
                         if (Platform.OS === 'web') {
                             return (

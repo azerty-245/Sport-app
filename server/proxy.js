@@ -135,16 +135,19 @@ app.get('/stream', validateApiKey, async (req, res) => {
                 timeout: 15000,
                 headers: {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                    'Accept': 'application/json, text/plain, */*',
                     'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
+                    'Accept-Encoding': 'gzip, deflate, br',
                     'Referer': 'https://www.sofascore.com/',
                     'Origin': 'https://www.sofascore.com',
-                    'Upgrade-Insecure-Requests': '1',
-                    'Sec-Fetch-Dest': 'document',
-                    'Sec-Fetch-Mode': 'navigate',
-                    'Sec-Fetch-Site': 'none',
-                    'Sec-Fetch-User': '?1',
-                    'DNT': '1'
+                    'sec-ch-ua': '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
+                    'sec-ch-ua-mobile': '?0',
+                    'sec-ch-ua-platform': '"Windows"',
+                    'Sec-Fetch-Dest': 'empty',
+                    'Sec-Fetch-Mode': 'cors',
+                    'Sec-Fetch-Site': 'same-site',
+                    'Priority': 'u=1, i',
+                    'Connection': 'keep-alive'
                 }
             });
             res.setHeader('Content-Type', response.headers['content-type'] || 'application/json');
@@ -161,18 +164,26 @@ app.get('/stream', validateApiKey, async (req, res) => {
     // ─── ULTRA-ROBUST IPTV MODE (Buffer 10MB + Debug Logs) ───
     try {
         console.log(`[Proxy] 🟢 New Stream: ${url.substring(0, 40)}...`);
-        console.log(`[Proxy] Settings: Buffer=10MB, Analysis=5s, User=VLC`);
+        console.log(`[Proxy] Settings: Buffer=20MB, Reconnect=Aggressive, Sync=Forced`);
 
         const ffmpeg = spawn('ffmpeg', [
-            '-reconnect', '1', '-reconnect_at_eof', '1', '-reconnect_streamed', '1',
-            '-reconnect_delay_max', '5',
+            '-reconnect', '1',
+            '-reconnect_at_eof', '1',
+            '-reconnect_streamed', '1',
+            '-reconnect_on_network_error', '1',
+            '-reconnect_on_http_error', '4xx,5xx',
+            '-reconnect_delay_max', '10',
+            '-multiple_requests', '1',
             '-fflags', '+genpts+igndts+discardcorrupt',
-            '-probesize', '10000000',
-            '-analyzeduration', '5000000',
-            '-headers', 'User-Agent: VLC/3.0.18 LibVLC/3.0.18\r\n',
+            '-err_detect', 'ignore_err',
+            '-thread_queue_size', '4096',
+            '-probesize', '20000000',                     // 20MB for even more stable detection
+            '-analyzeduration', '10000000',               // 10s of analysis
+            '-headers', 'User-Agent: VLC/3.0.18 LibVLC/3.0.18\r\nConnection: keep-alive\r\n',
             '-i', url,
             '-c:v', 'copy',
             '-c:a', 'aac', '-b:a', '128k',
+            '-af', 'aresample=async=1',
             '-avoid_negative_ts', 'make_zero',
             '-f', 'mpegts', '-muxdelay', '0',
             'pipe:1'
