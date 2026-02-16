@@ -42,6 +42,8 @@ yarn-error.*
 /android
 
 # Sensitive scripts (may contain credentials)
+server/
+proxy.js
 scripts/
 working_iptv_links.json
 check_streaming.js
@@ -49,6 +51,3 @@ test.js
 
 # Build artifacts
 dist-electron/
-
-# Large binaries
-server/ffmpeg.exe
