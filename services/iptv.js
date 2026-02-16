@@ -21,10 +21,11 @@ export const PROXY_URL = getProxyUrl();
 console.log('[IPTV] Initialized with Proxy URL:', PROXY_URL); // DEBUG
 
 const IPTV_URL = process.env.EXPO_PUBLIC_IPTV_URL || '';
+const API_KEY = process.env.EXPO_PUBLIC_API_KEY || 'sport-zone-secure-v1';
 
 export const getIPTVChannels = async () => {
     try {
-        // Check cache first (DISABLED ON WEB to ensure fresh proxy usage)
+        // ... cache check ...
         if (Platform.OS !== 'web') {
             const cachedData = await AsyncStorage.getItem(CACHE_KEY);
             if (cachedData) {
@@ -40,10 +41,15 @@ export const getIPTVChannels = async () => {
         const playlistUrl = `${PROXY_URL}/playlist`;
 
         console.log('[IPTV] Fetching IPTV playlist securely via Proxy...');
-        const response = await fetch(playlistUrl);
+        const response = await fetch(playlistUrl, {
+            headers: {
+                'X-API-Key': API_KEY
+            }
+        });
         if (!response.ok) throw new Error('Failed to fetch IPTV playlist');
 
         const text = await response.text();
+        // ...
         console.log('[IPTV] Response preview:', text.substring(0, 200)); // DEBUG: See what we actually got
         const lines = text.split('\n');
         const channels = [];

@@ -6,7 +6,27 @@ const { spawn } = require('child_process');
 const app = express();
 const PORT = 3005;
 
+// SECURITY: Define your API Key (Must match EXPO_PUBLIC_API_KEY in the app)
+const API_KEY = process.env.API_KEY || 'sport-zone-secure-v1';
+
+// CACHE: In-memory storage for the playlist
+let playlistCache = {
+    data: null,
+    timestamp: 0,
+};
+const CACHE_DURATION = 1000 * 60 * 60 * 6; // 6 Hours
+
 app.use(cors());
+
+// Middleware to check API Key
+const validateApiKey = (req, res, next) => {
+    const providedKey = req.headers['x-api-key'] || req.query.key;
+    if (providedKey !== API_KEY) {
+        console.warn(`[Security] Unauthorized access attempt from ${req.ip}`);
+        return res.status(401).send('Unauthorized: Invalid API Key');
+    }
+    next();
+};
 
 // Helper to check if FFmpeg is available
 const checkFFmpeg = () => {
@@ -17,20 +37,27 @@ const checkFFmpeg = () => {
     });
 };
 
-app.get('/playlist', async (req, res) => {
-    // Allows comma-separated URLs in IPTV_URL environment variable
+app.get('/playlist', validateApiKey, async (req, res) => {
+    const now = Date.now();
+
+    // 1. Check if cache is fresh
+    if (playlistCache.data && (now - playlistCache.timestamp < CACHE_DURATION)) {
+        console.log('[Proxy] Serving playlist from Server Cache (Instant)');
+        res.setHeader('Content-Type', 'text/plain');
+        return res.send(playlistCache.data);
+    }
+
     const iptvUrls = (process.env.IPTV_URL || '').split(',').map(u => u.trim()).filter(u => u);
 
     if (iptvUrls.length === 0) {
         return res.status(500).send('IPTV_URL not configured on server');
     }
 
-    console.log(`[Proxy] Fetching playlist (${iptvUrls.length} sources available)...`);
+    console.log(`[Proxy] Playlist cache expired. Fetching (${iptvUrls.length} sources available)...`);
 
     let lastError = null;
     let successData = null;
 
-    // Try each URL until one works
     for (const url of iptvUrls) {
         try {
             console.log(`[Proxy] Trying source: ${url.substring(0, 60)}...`);
@@ -56,20 +83,27 @@ app.get('/playlist', async (req, res) => {
             const trimmed = line.trim();
             if (trimmed.startsWith('http')) {
                 const encodedUrl = Buffer.from(trimmed).toString('base64');
-                return `/stream?id=${encodedUrl}`;
+                // IMPORTANT: Append the API Key so the stream request is also authorized
+                return `/stream?id=${encodedUrl}&key=${API_KEY}`;
             }
             return line;
         });
 
+        const finalOutput = rewrittenLines.join('\n');
+
+        // Update Cache
+        playlistCache.data = finalOutput;
+        playlistCache.timestamp = now;
+
         res.setHeader('Content-Type', 'text/plain');
-        res.send(rewrittenLines.join('\n'));
+        res.send(finalOutput);
     } catch (error) {
         console.error('[Proxy] Rewrite error:', error.message);
         res.status(500).send('Failed to process playlist');
     }
 });
 
-app.get('/stream', async (req, res) => {
+app.get('/stream', validateApiKey, async (req, res) => {
     let { url, id } = req.query;
 
     if (id) {
@@ -164,8 +198,9 @@ app.get('/stream', async (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`
-🚀 Streaming Proxy running at http://localhost:${PORT}
-👉 Usage: http://localhost:${PORT}/stream?url=YOUR_IPTV_URL
-⚠️  FFmpeg Check: ${'Checking on first request...'}
+🚀 Streaming Proxy UNIFIÉ (Sécurisé + Robuste)
+📍 Port : ${PORT}
+🔑 Security : API Key Enabled
+⏱️  Cache : 6 Hours Enabled
     `);
 });
