@@ -104,7 +104,7 @@ app.get('/playlist', validateApiKey, async (req, res) => {
 });
 
 app.get('/stream', validateApiKey, async (req, res) => {
-    let { url, id } = req.query;
+    let { url, id, nocode } = req.query;
 
     if (id) {
         try {
@@ -116,7 +116,7 @@ app.get('/stream', validateApiKey, async (req, res) => {
 
     if (!url) return res.status(400).send('Missing "url" or "id"');
 
-    console.log(`[Proxy] Streaming: ${url.substring(0, 70)}...`);
+    console.log(`[Proxy] Requesting: ${url.substring(0, 70)}... (nocode=${!!nocode})`);
 
     // Standard headers
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -124,75 +124,87 @@ app.get('/stream', validateApiKey, async (req, res) => {
 
     const hasFFmpeg = await checkFFmpeg();
 
-    if (hasFFmpeg) {
-        // ─── FFmpeg Transcoding Mode (Best for Audio) ───
+    // ─── Stealth Mode (Pour SofaScore / APIs) ───
+    if (nocode === 'true' || !hasFFmpeg) {
         try {
-            console.log('[Proxy] FFmpeg detected. Transcoding audio to AAC...');
-            res.setHeader('Content-Type', 'video/mp2t');
-
-            const ffmpeg = spawn('ffmpeg', [
-                '-reconnect', '1',
-                '-reconnect_at_eof', '1',
-                '-reconnect_streamed', '1',
-                '-reconnect_delay_max', '4', // 4s max delay for reconnection
-                '-probesize', '4000000',      // 4MB probe for better stability
-                '-analyzeduration', '4000000', // 4s analysis for smooth playback
-                '-i', url,
-                '-c:v', 'copy',     // Keep video as-is (Fast!)
-                '-c:a', 'aac',      // Convert audio to AAC (Web compatible)
-                '-b:a', '128k',
-                '-f', 'mpegts',
-                'pipe:1'
-            ]);
-
-            ffmpeg.stdout.pipe(res);
-
-            ffmpeg.stderr.on('data', (d) => { /* console.log(d.toString()) */ });
-
-            ffmpeg.on('close', (code) => {
-                console.log(`[FFmpeg] Exited with code ${code}`);
-                res.end();
+            console.log(`[Proxy] Ultra-Stealth fetch: ${url.substring(0, 50)}...`);
+            const response = await axios({
+                method: 'get',
+                url: url,
+                responseType: 'stream',
+                timeout: 15000,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                    'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
+                    'Referer': 'https://www.sofascore.com/',
+                    'Origin': 'https://www.sofascore.com',
+                    'Upgrade-Insecure-Requests': '1',
+                    'Sec-Fetch-Dest': 'document',
+                    'Sec-Fetch-Mode': 'navigate',
+                    'Sec-Fetch-Site': 'none',
+                    'Sec-Fetch-User': '?1',
+                    'DNT': '1'
+                }
             });
-
-            res.on('close', () => {
-                console.log('[Proxy] Client disconnected (FFmpeg)');
-                ffmpeg.kill();
-            });
+            res.setHeader('Content-Type', response.headers['content-type'] || 'application/json');
+            response.data.pipe(res);
+            res.on('close', () => response.data.destroy());
             return;
-
-        } catch (e) {
-            console.error('[Proxy] FFmpeg error, falling back to direct pipe:', e);
+        } catch (error) {
+            console.error('[Proxy] Stealth Error (Persistent 403?):', error.message);
+            if (!res.headersSent) res.status(error.response ? error.response.status : 502).send(error.message);
+            return;
         }
     }
 
-    // ─── Fallback: Direct Pipe (No Audio Fix) ───
+    // ─── ULTRA-ROBUST IPTV MODE (Buffer 10MB + Debug Logs) ───
     try {
-        console.log('[Proxy] FFmpeg NOT found. Using direct pipe (Audio might be incompatible).');
+        console.log(`[Proxy] 🟢 New Stream: ${url.substring(0, 40)}...`);
+        console.log(`[Proxy] Settings: Buffer=10MB, Analysis=5s, User=VLC`);
 
-        const response = await axios({
-            method: 'get',
-            url: url,
-            responseType: 'stream',
-            timeout: 10000,
-            headers: { 'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18' }
+        const ffmpeg = spawn('ffmpeg', [
+            '-reconnect', '1', '-reconnect_at_eof', '1', '-reconnect_streamed', '1',
+            '-reconnect_delay_max', '5',
+            '-fflags', '+genpts+igndts+discardcorrupt',
+            '-probesize', '10000000',
+            '-analyzeduration', '5000000',
+            '-headers', 'User-Agent: VLC/3.0.18 LibVLC/3.0.18\r\n',
+            '-i', url,
+            '-c:v', 'copy',
+            '-c:a', 'aac', '-b:a', '128k',
+            '-avoid_negative_ts', 'make_zero',
+            '-f', 'mpegts', '-muxdelay', '0',
+            'pipe:1'
+        ]);
+
+        ffmpeg.stderr.on('data', (data) => {
+            const msg = data.toString();
+            // Log only critical errors or interesting warnings to avoid flooding
+            if (msg.includes('error') || msg.includes('timeout') || msg.includes('Corrupt')) {
+                console.warn(`[FFmpeg-Diagnostics] ${msg.trim()}`);
+            }
         });
 
-        res.setHeader('Content-Type', response.headers['content-type'] || 'video/mp2t');
-        response.data.pipe(res);
+        res.setHeader('Content-Type', 'video/mp2t');
+        ffmpeg.stdout.pipe(res);
 
-        response.data.on('error', (err) => {
-            console.error('[Proxy] Stream error:', err.message);
+        ffmpeg.on('close', (code) => {
+            if (code !== 0 && code !== 255) {
+                console.error(`[Proxy] 🔴 Stream FAILED (Code ${code}). Possible provider block or dead URL.`);
+            } else {
+                console.log(`[Proxy] ⚪ Stream ended normally (Code ${code})`);
+            }
             res.end();
         });
 
         res.on('close', () => {
-            console.log('[Proxy] Client disconnected (Direct)');
-            response.data.destroy();
+            console.log('[Proxy] 🟡 Client disconnected (Phone/Browser closed or changed channel)');
+            ffmpeg.kill();
         });
-
-    } catch (error) {
-        console.error('[Proxy] Connection failed:', error.message);
-        if (!res.headersSent) res.status(502).send('Bad Gateway');
+    } catch (e) {
+        console.error('[Proxy] 🔴 Spawn Error:', e.message);
+        if (!res.headersSent) res.status(500).send('FFmpeg Error');
     }
 });
 

@@ -227,64 +227,85 @@ export default function StreamingScreen() {
           </head>
           <body>
             <div id="status">Chargement du flux...</div>
+            <div id="debug-log" style="position:fixed; bottom:50px; left:10px; color:#0f0; font-family:monospace; font-size:10px; z-index:100; background:rgba(0,0,0,0.5); pointer-events:none;"></div>
             <video id="video" controls autoplay playsinline></video>
             <script>
               var video = document.getElementById('video');
               var statusOverlay = document.getElementById('status');
+              var debugLog = document.getElementById('debug-log');
               var src = '${url}';
+
+              function log(msg) {
+                console.log(msg);
+                var div = document.createElement('div');
+                div.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+                debugLog.appendChild(div);
+                if (debugLog.children.length > 5) debugLog.removeChild(debugLog.firstChild);
+              }
 
               function hideStatus() { if(statusOverlay) statusOverlay.style.display = 'none'; }
 
+              log('Initialisation du lecteur...');
+
+              // Listen for browser-level network issues
+              window.addEventListener('offline', function() { log('⚠️ CONNEXION PERDUE (Check Wifi/4G)'); });
+              window.addEventListener('online', function() { log('✅ CONNEXION RÉTABLIE'); });
+
+              video.addEventListener('waiting', function() { log('⏳ Mise en mémoire tampon (Chargement...)'); });
+              video.addEventListener('stalled', function() { log('🚫 Flux arrêté (Problème réseau ou serveur)'); });
+              video.addEventListener('error', function() { log('❌ Erreur Lecteur: ' + (video.error ? video.error.message : 'Inconnue')); });
+
               // Try mpegts.js first (for MPEG-TS / FLV streams from IPTV servers)
               if (mpegts.isSupported()) {
-                if(statusOverlay) statusOverlay.textContent = 'Connexion au flux MPEG-TS...';
+                log('Mode MPEG-TS activé');
                 var player = mpegts.createPlayer({
                   type: 'mpegts',
                   isLive: true,
                   url: src
                 }, {
                   enableWorker: true,
-                  liveBufferLatencyChasing: false, // STOP THE JUMPS: Don't skip forward to catch up
+                  liveBufferLatencyChasing: false,
                   liveSync: true,
-                  liveSyncTarget: 5,               // Aim to stay at the 5s buffer mark
+                  liveSyncTarget: 5,
                   enableStashBuffer: true,
-                  stashInitialSize: 5000,          // 5s of safety
-                  fixAudioTimestampGap: false,
+                  stashInitialSize: 5000, 
                 });
                 player.attachMediaElement(video);
                 player.load();
-                player.play().catch(function(e) { console.log('Autoplay blocked:', e); });
+                player.play().catch(function(e) { log('Autoplay bloqué'); });
+                
                 player.on(mpegts.Events.ERROR, function(errType, errDetail) {
-                   console.warn('mpegts error:', errType, errDetail);
-                   // Silently handle SourceBuffer removal or fatal errors by trying HLS
-                   try {
-                     player.destroy();
-                   } catch(e) {}
+                   log('❌ Erreur Flux: ' + errType + ' (' + errDetail + ')');
+                   try { player.destroy(); } catch(e) {}
                    tryHLS();
                 });
-                // Catch any underlying MSE errors
-                video.addEventListener('error', function(e) {
-                   if (video.error && video.error.code === 4) { // MEDIA_ERR_SRC_NOT_SUPPORTED
-                      tryHLS();
-                   }
+                
+                setInterval(function() {
+                  if (player.statisticsInfo) {
+                    // Hidden debug info
+                  }
+                }, 3000);
+
+                video.addEventListener('playing', function() {
+                  log('▶️ Lecture en cours');
+                  hideStatus();
                 });
-                video.addEventListener('playing', hideStatus);
               } else {
                 tryHLS();
               }
 
               function tryHLS() {
+                log('Passage en mode HLS...');
                 if (typeof Hls !== 'undefined' && Hls.isSupported()) {
-                  if(statusOverlay) statusOverlay.textContent = 'Tentative HLS...';
                   var hls = new Hls({ enableWorker: true });
                   hls.loadSource(src);
                   hls.attachMedia(video);
                   hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                    video.play().catch(function(e) { console.log(e); });
+                    video.play().catch(function(e) { log('HLS Autoplay failed'); });
                     hideStatus();
                   });
                   hls.on(Hls.Events.ERROR, function(event, data) {
-                    if (data.fatal) { tryDirect(); }
+                    if (data.fatal) { log('❌ Erreur HLS fatale'); tryDirect(); }
                   });
                 } else {
                   tryDirect();
@@ -292,20 +313,17 @@ export default function StreamingScreen() {
               }
 
               function tryDirect() {
-                if(statusOverlay) statusOverlay.textContent = 'Lecture directe...';
+                log('Lecture HTML5 Directe...');
                 video.src = src;
                 video.addEventListener('loadedmetadata', function() {
-                  video.play().catch(function(e) { console.log(e); });
+                  video.play().catch(function(e) { log('Direct Autoplay failed'); });
                   hideStatus();
                 });
                 video.addEventListener('error', function() {
-                  if(statusOverlay) {
-                    statusOverlay.textContent = 'Impossible de lire ce flux.';
-                    statusOverlay.style.color = '#e74c3c';
-                  }
+                   log('❌ Échec total de lecture');
                 });
               }
-            <\/script>
+            </script>
           </body>
         </html>`,
             url
