@@ -22,6 +22,7 @@
     "@vercel/analytics": "^1.6.1",
     "axios": "^1.13.5",
     "cors": "^2.8.6",
+    "dotenv": "^16.4.7",
     "electron-is-dev": "^3.0.1",
     "electron-serve": "^3.0.1",
     "expo": "~54.0.33",
