@@ -17,18 +17,40 @@ const checkFFmpeg = () => {
 };
 
 app.get('/playlist', async (req, res) => {
-    const iptvUrl = process.env.IPTV_URL;
-    if (!iptvUrl) return res.status(500).send('IPTV_URL not configured on server');
+    // Allows comma-separated URLs in IPTV_URL environment variable
+    const iptvUrls = (process.env.IPTV_URL || '').split(',').map(u => u.trim()).filter(u => u);
 
-    console.log('[Proxy] Fetching and rewriting playlist...');
+    if (iptvUrls.length === 0) {
+        return res.status(500).send('IPTV_URL not configured on server');
+    }
+
+    console.log(`[Proxy] Fetching playlist (${iptvUrls.length} sources available)...`);
+
+    let lastError = null;
+    let successData = null;
+
+    // Try each URL until one works
+    for (const url of iptvUrls) {
+        try {
+            console.log(`[Proxy] Trying source: ${url.substring(0, 60)}...`);
+            const response = await axios.get(url, {
+                timeout: 10000,
+                headers: { 'User-Agent': 'VLC/3.0.18' }
+            });
+            successData = response.data;
+            break;
+        } catch (error) {
+            console.warn(`[Proxy] Source failed ${url.substring(0, 30)}... : ${error.message}`);
+            lastError = error;
+        }
+    }
+
+    if (!successData) {
+        return res.status(502).send(`All IPTV sources failed. Last error: ${lastError?.message}`);
+    }
+
     try {
-        const response = await axios.get(iptvUrl, {
-            timeout: 15000,
-            headers: { 'User-Agent': 'VLC/3.0.18' }
-        });
-
-        const lines = response.data.split('\n');
-
+        const lines = successData.split('\n');
         const rewrittenLines = lines.map(line => {
             const trimmed = line.trim();
             if (trimmed.startsWith('http')) {
@@ -41,8 +63,8 @@ app.get('/playlist', async (req, res) => {
         res.setHeader('Content-Type', 'text/plain');
         res.send(rewrittenLines.join('\n'));
     } catch (error) {
-        console.error('[Proxy] Playlist fetch failed:', error.message);
-        res.status(502).send('Failed to fetch/rewrite playlist');
+        console.error('[Proxy] Rewrite error:', error.message);
+        res.status(500).send('Failed to process playlist');
     }
 });
 
