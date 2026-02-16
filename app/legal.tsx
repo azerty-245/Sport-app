@@ -83,8 +83,7 @@ export default function LegalScreen() {
                     <Text style={styles.text}>
                         Entreprise : Eben Tech{"\n"}
                         Téléphone : 00228 90884312{"\n"}
-                        Email : akakakpoebenezer03@gmail.com{"\n"}
-                        Adresse : Lomé, Togo
+                        Email : akakakpoebenezer03@gmail.com
                     </Text>
                 </View>
 
