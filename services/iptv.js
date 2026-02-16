@@ -8,10 +8,15 @@ const CACHE_DURATION = 1000 * 60 * 60 * 12; // 12 hours
 // On Web, checking window.location.origin is safer for Workers which need absolute URLs
 const getProxyUrl = () => {
     if (Platform.OS === 'web') {
-        if (typeof window !== 'undefined' && window.location) {
+        const isStandardWeb = typeof window !== 'undefined' &&
+            window.location &&
+            (window.location.protocol === 'http:' || window.location.protocol === 'https:');
+
+        if (isStandardWeb) {
             return `${window.location.origin}/api/iptv`;
         }
-        return '/api/iptv';
+        // For Electron (app:// protocol) or local files, use the absolute Oracle Proxy URL
+        return process.env.EXPO_PUBLIC_PROXY_URL || 'http://152.70.45.91:3005';
     }
     return process.env.EXPO_PUBLIC_PROXY_URL || '';
 };

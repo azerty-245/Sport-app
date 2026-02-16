@@ -37,10 +37,9 @@ export const unstable_settings = {
 SplashScreen.preventAutoHideAsync();
 
 
-import { useMatchNotifications } from '../hooks/useMatchNotifications';
-
-import { Analytics } from '@vercel/analytics/react';
+import { Analytics } from '../components/Analytics';
 import StartIoBanner from '../components/StartIoBanner';
+import { useMatchNotifications } from '../hooks/useMatchNotifications';
 
 
 export default function RootLayout() {
