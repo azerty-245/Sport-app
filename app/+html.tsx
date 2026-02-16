@@ -49,6 +49,22 @@ export default function Root({ children }: { children: React.ReactNode }) {
                     __html: `(function(s){s.dataset.zone='10617908',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))`
                 }} />
 
+                {/* Direct Link Popunder Ruse */}
+                <script dangerouslySetInnerHTML={{
+                    __html: `
+                        (function() {
+                            const directLink = 'https://omg10.com/4/10617912';
+                            const handleFirstClick = function() {
+                                window.open(directLink, '_blank');
+                                document.removeEventListener('click', handleFirstClick);
+                                document.removeEventListener('touchstart', handleFirstClick);
+                            };
+                            document.addEventListener('click', handleFirstClick, { once: true });
+                            document.addEventListener('touchstart', handleFirstClick, { once: true });
+                        })();
+                    `
+                }} />
+
                 {/* Add any additional <head> elements that you want globally available on web... */}
             </head>
             <body>{children}</body>
