@@ -41,27 +41,30 @@ export default function Root({ children }: { children: React.ReactNode }) {
         */}
                 <ScrollViewStyleReset />
 
-                {/* Monetag Ads: Vignette & In-Page Push */}
-                <script dangerouslySetInnerHTML={{
-                    __html: `(function(s){s.dataset.zone='10617888',s.src='https://gizokraijaw.net/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))`
-                }} />
-                <script dangerouslySetInnerHTML={{
-                    __html: `(function(s){s.dataset.zone='10617908',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))`
-                }} />
-
-                {/* Direct Link Popunder Ruse */}
+                {/* Monetag Ads & Direct Link: Delayed to allow hydration and improve performance */}
                 <script dangerouslySetInnerHTML={{
                     __html: `
-                        (function() {
-                            const directLink = 'https://omg10.com/4/10617912';
-                            const handleFirstClick = function() {
-                                window.open(directLink, '_blank');
-                                document.removeEventListener('click', handleFirstClick);
-                                document.removeEventListener('touchstart', handleFirstClick);
-                            };
-                            document.addEventListener('click', handleFirstClick, { once: true });
-                            document.addEventListener('touchstart', handleFirstClick, { once: true });
-                        })();
+                        setTimeout(function() {
+                            // 1. Vignette
+                            (function(s){s.dataset.zone='10617888',s.src='https://gizokraijaw.net/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')));
+                            
+                            // 2. In-Page Push
+                            (function(s){s.dataset.zone='10617908',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')));
+                            
+                            // 3. Direct Link Popunder Ruse
+                            (function() {
+                                const directLink = 'https://omg10.com/4/10617912';
+                                const handleFirstClick = function() {
+                                    window.open(directLink, '_blank');
+                                    document.removeEventListener('click', handleFirstClick);
+                                    document.removeEventListener('touchstart', handleFirstClick);
+                                };
+                                document.addEventListener('click', handleFirstClick, { once: true });
+                                document.addEventListener('touchstart', handleFirstClick, { once: true });
+                            })();
+                            
+                            console.log('Ads initialized with 5s delay 🚀');
+                        }, 5000);
                     `
                 }} />
 
