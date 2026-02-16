@@ -10,3 +10,4 @@ node_modules/
 .expo/
 dist/
 dist-electron/
+eas.json
