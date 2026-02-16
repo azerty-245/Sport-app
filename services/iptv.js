@@ -74,31 +74,31 @@ export const getIPTVChannels = async () => {
                 const groupUpper = currentChannel.group?.toUpperCase() || '';
 
                 // 1. Identify French Content
-                // Looks for 'FR:', 'FRANCE', 'FRENCH', or 'FR |' in name or group
-                const isFrench = nameUpper.includes('FR:') || nameUpper.includes('FRANCE') || groupUpper.includes('FRANCE') || groupUpper.includes('FR |') || groupUpper.includes('FRENCH');
+                const isFrench = nameUpper.includes('FR:') || nameUpper.includes('FRANCE') || groupUpper.includes('FRANCE') || groupUpper.includes('FR |') || groupUpper.includes('FRENCH') || groupUpper.includes('FRANÇAIS');
 
                 // 2. Identify Sports Content (Generic)
-                const isSportGeneric = nameUpper.includes('SPORT') || groupUpper.includes('SPORT') || nameUpper.includes('FOOT') || nameUpper.includes('SOCCER') || nameUpper.includes('RUGBY') || nameUpper.includes('TENNIS') || nameUpper.includes('BASKET') || nameUpper.includes('MOTO') || nameUpper.includes('AUTO');
+                const isSportGeneric = nameUpper.includes('SPORT') || groupUpper.includes('SPORT') || nameUpper.includes('FOOT') || nameUpper.includes('SOCCER') || nameUpper.includes('RUGBY') || nameUpper.includes('TENNIS') || nameUpper.includes('BASKET') || nameUpper.includes('MOTO') || nameUpper.includes('AUTO') || nameUpper.includes('FIGHT') || nameUpper.includes('UFC') || nameUpper.includes('WWE');
 
                 // 3. Identify Premium/Specific Sports Channels (Explicit Brands)
-                // Based on debug output: CANAL+, BEIN, RMC, EUROSPORT, DAZN, PRIME VIDEO, L'EQUIPE, AUTOMOTO, EQUIDIA
-                const isPremiumSport = nameUpper.includes('CANAL+ SPORT') || nameUpper.includes('CANAL+ FOOT') || nameUpper.includes('CANAL+ PREMIER') || nameUpper.includes('CANAL+ FORMULA') ||
-                    nameUpper.includes('BEIN') || nameUpper.includes('RMC SPORT') || nameUpper.includes('EUROSPORT') ||
-                    nameUpper.includes('DAZN') || nameUpper.includes('PRIME VIDEO') || nameUpper.includes('EQUIPE') ||
-                    nameUpper.includes('AUTOMOTO') || nameUpper.includes('EQUIDIA') || nameUpper.includes('GOLF+') || nameUpper.includes('MULTISPORTS');
+                const isPremiumBrand = nameUpper.includes('CANAL+') || nameUpper.includes('BEIN') || nameUpper.includes('RMC SPORT') ||
+                    nameUpper.includes('EUROSPORT') || nameUpper.includes('DAZN') || nameUpper.includes('PRIME VIDEO') ||
+                    nameUpper.includes('EQUIPE') || nameUpper.includes('AUTOMOTO') || nameUpper.includes('EQUIDIA') ||
+                    nameUpper.includes('ELEVEN') || nameUpper.includes('SKY SPORT') || nameUpper.includes('MULTISPORTS') ||
+                    nameUpper.includes('GOLF+');
 
-                // 4. Identify Main French General Channels (TF1, M6, etc. often show sports)
+                // 4. Identify Main French General Channels (often show major events)
                 const isMainFrench = nameUpper === 'FR: TF1' || nameUpper === 'FR: M6' || nameUpper === 'FR: FRANCE 2' || nameUpper === 'FR: FRANCE 3' ||
-                    nameUpper.includes('TF1 4K') || nameUpper.includes('M6 4K');
+                    nameUpper.includes('TF1 4K') || nameUpper.includes('M6 4K') || nameUpper === 'TF1' || nameUpper === 'M6';
 
-                if (isFrench && (isSportGeneric || isPremiumSport)) {
+                // Final filtering: Must be French Sport OR any clear Premium Sport brand
+                if ((isFrench && (isSportGeneric || isPremiumBrand)) || (isPremiumBrand && isSportGeneric)) {
                     currentChannel.category = 'Sport';
-                    // Clean up name for display (remove "FR: " prefix)
-                    currentChannel.name = currentChannel.name.replace(/^FR:\s*/, '').replace(/\(.*\)/, '').trim();
+                    // Clean up name (remove "FR: " prefix, regional tags, etc.)
+                    currentChannel.name = currentChannel.name.replace(/^(FR:|FRANCE|FRENCH)\s*/i, '').replace(/\(.*\)/, '').replace(/\[.*\]/, '').trim();
                     channels.push(currentChannel);
                 } else if (isMainFrench) {
                     currentChannel.category = 'General';
-                    currentChannel.name = currentChannel.name.replace(/^FR:\s*/, '').replace(/\(.*\)/, '').trim();
+                    currentChannel.name = currentChannel.name.replace(/^(FR:|FRANCE|FRENCH)\s*/i, '').replace(/\(.*\)/, '').trim();
                     channels.push(currentChannel);
                 }
 
