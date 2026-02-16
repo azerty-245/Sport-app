@@ -15,7 +15,6 @@
             "channel": "preview",
             "env": {
                 "EXPO_PUBLIC_FOOTBALL_API_KEY": "prince",
-                "EXPO_PUBLIC_IPTV_URL": "http://vipkentken.top:8080/get.php?username=VIP014991763158752117&password=879ce578d38b&type=m3u",
                 "EXPO_PUBLIC_PROXY_URL": "http://152.70.45.91:3005"
             }
         },

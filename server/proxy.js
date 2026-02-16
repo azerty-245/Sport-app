@@ -74,6 +74,10 @@ app.get('/stream', async (req, res) => {
             res.setHeader('Content-Type', 'video/mp2t');
 
             const ffmpeg = spawn('ffmpeg', [
+                '-reconnect', '1',
+                '-reconnect_at_eof', '1',
+                '-reconnect_streamed', '1',
+                '-reconnect_delay_max', '2',
                 '-i', url,
                 '-c:v', 'copy',     // Keep video as-is (Fast!)
                 '-c:a', 'aac',      // Convert audio to AAC (Web compatible)
@@ -133,7 +137,7 @@ app.get('/stream', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`
 🚀 Streaming Proxy running at http://localhost:${PORT}
 👉 Usage: http://localhost:${PORT}/stream?url=YOUR_IPTV_URL
