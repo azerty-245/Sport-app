@@ -41,7 +41,7 @@ export default function TabLayout() {
           name="index"
           options={{
             title: 'Live',
-            headerTitle: '⚽ Sport Zone',
+            headerTitle: 'Eben',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="flash" size={size} color={color} />
             ),

@@ -26,7 +26,7 @@ export default function LegalScreen() {
                     <Text style={styles.title}>Politique de Confidentialité</Text>
                     <Text style={styles.text}>
                         Dernière mise à jour : 14 février 2026{"\n\n"}
-                        Chez Sport Zone (Eben Tech), nous accordons une grande importance à votre vie privée.{"\n\n"}
+                        Chez Eben, nous accordons une grande importance à votre vie privée.{"\n\n"}
                     </Text>
                     <Text style={styles.sectionTitle}>1. Partenaires publicitaires et stockage des données</Text>
                     <Text style={styles.paragraph}>
@@ -70,10 +70,10 @@ export default function LegalScreen() {
                 <View style={styles.section}>
                     <Text style={styles.title}>Conditions d'Utilisation</Text>
                     <Text style={styles.text}>
-                        En utilisant Sport Zone, vous acceptez les conditions suivantes :{"\n\n"}
+                        En utilisant Eben, vous acceptez les conditions suivantes :{"\n\n"}
                         1. Usage : Cette application est destinée à un usage personnel et non commercial uniquement.{"\n\n"}
-                        2. Propriété du Contenu : Eben Tech ne possède ni n'héberge aucun contenu de streaming. Les flux IPTV sont fournis "tels quels" par des fournisseurs externes.{"\n\n"}
-                        3. Responsabilité : Eben Tech n'est pas responsable des interruptions de service, de la qualité des flux ou des inexactitudes dans les scores en direct.{"\n\n"}
+                        2. Propriété du Contenu : Eben ne possède ni n'héberge aucun contenu de streaming. Les flux IPTV sont fournis "tels quels" par des fournisseurs externes.{"\n\n"}
+                        3. Responsabilité : Eben n'est pas responsable des interruptions de service, de la qualité des flux ou des inexactitudes dans les scores en direct.{"\n\n"}
                         4. Conformité : L'utilisateur est responsable de s'assurer que son utilisation des flux IPTV est conforme aux lois locales de sa juridiction.
                     </Text>
                 </View>
@@ -81,19 +81,19 @@ export default function LegalScreen() {
                 <View style={styles.section}>
                     <Text style={styles.title}>Licence</Text>
                     <Text style={styles.text}>
-                        Sport Zone est distribué sous la Licence Digitale Standard d'Eben Tech. Cette licence autorise l'usage personnel et non-commercial du logiciel. Toute redistribution ou modification sans autorisation préalable est strictement interdite.
+                        Eben est distribué sous la Licence Digitale Standard d'Eben. Cette licence autorise l'usage personnel et non-commercial du logiciel. Toute redistribution ou modification sans autorisation préalable est strictement interdite.
                     </Text>
                 </View>
 
                 <View style={styles.section}>
                     <Text style={styles.title}>Contact</Text>
                     <Text style={styles.text}>
-                        Éditeur : Eben Tech{"\n"}
+                        Éditeur : Eben{"\n"}
                         Disponibilité : Support via l'application
                     </Text>
                 </View>
 
-                <Text style={styles.footer}>© 2026 Eben Tech. Tous droits réservés.</Text>
+                <Text style={styles.footer}>© 2026 Eben. Tous droits réservés.</Text>
             </ScrollView >
         </View >
     );

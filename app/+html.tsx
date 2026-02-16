@@ -16,14 +16,14 @@ export default function Root({ children }: { children: React.ReactNode }) {
           These tags ensure that when the link is shared on WhatsApp/Facebook/Twitter,
           it shows a nice title, description, and image.
         */}
-                <title>Sport Zone - Live & Streaming</title>
-                <meta name="description" content="Regardez les matchs de football en direct, suivez les scores et l'actualité sportive sur Sport Zone." />
+                <title>Eben - Solution Digitale</title>
+                <meta name="description" content="Eben est une plateforme d'optimisation digitale offrant des outils de gestion d'information et des services multimédias intégrés pour améliorer votre productivité quotidienne." />
 
                 {/* Open Graph / Facebook / WhatsApp */}
                 <meta property="og:type" content="website" />
                 <meta property="og:url" content="https://sport-app-three-pi.vercel.app/" />
-                <meta property="og:title" content="Sport Zone - Live & Streaming" />
-                <meta property="og:description" content="Regardez les matchs de football en direct, suivez les scores et l'actualité sportive sur Sport Zone." />
+                <meta property="og:title" content="Eben - Solution Digitale" />
+                <meta property="og:description" content="Eben est une plateforme d'optimisation digitale offrant des outils de gestion d'information et des services multimédias intégrés pour améliorer votre productivité quotidienne." />
                 <meta property="og:image" content="https://sport-app-three-pi.vercel.app/icon.png" />
                 <meta property="og:image:width" content="1024" />
                 <meta property="og:image:height" content="1024" />
@@ -31,8 +31,8 @@ export default function Root({ children }: { children: React.ReactNode }) {
                 {/* Twitter */}
                 <meta property="twitter:card" content="summary_large_image" />
                 <meta property="twitter:url" content="https://sport-app-three-pi.vercel.app/" />
-                <meta property="twitter:title" content="Sport Zone - Live & Streaming" />
-                <meta property="twitter:description" content="Regardez les matchs de football en direct, suivez les scores et l'actualité sportive sur Sport Zone." />
+                <meta property="twitter:title" content="Eben - Solution Digitale" />
+                <meta property="twitter:description" content="Eben est une plateforme d'optimisation digitale offrant des outils de gestion d'information et des services multimédias intégrés pour améliorer votre productivité quotidienne." />
                 <meta property="twitter:image" content="https://sport-app-three-pi.vercel.app/icon.png" />
 
                 {/* 

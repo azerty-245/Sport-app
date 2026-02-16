@@ -50,7 +50,7 @@ async function createWindow() {
             contextIsolation: true,
             webSecurity: false, // Allow cross-origin requests (needed for IPTV M3U fetch)
         },
-        title: "Sport Zone",
+        title: "Eben",
         icon: path.join(__dirname, 'assets/images/icon.png'),
         autoHideMenuBar: true,
     });

@@ -40,6 +40,7 @@ SplashScreen.preventAutoHideAsync();
 import { useMatchNotifications } from '../hooks/useMatchNotifications';
 
 import { Analytics } from '@vercel/analytics/react';
+import StartIoBanner from '../components/StartIoBanner';
 
 
 export default function RootLayout() {
@@ -74,9 +75,8 @@ export default function RootLayout() {
           <CookieBanner />
           {/* Vercel Analytics - Tracks Web and Windows (Remote) users */}
           <Analytics />
-          {/* Start.io Ads - Temporarily Disabled
-          <StartIoBanner /> 
-          */}
+          {/* Start.io Ads */}
+          <StartIoBanner />
         </View>
       </ThemeProvider>
     </CustomErrorBoundary>

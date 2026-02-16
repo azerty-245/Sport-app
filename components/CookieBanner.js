@@ -50,15 +50,15 @@ export default function CookieBanner() {
         <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
             <View style={styles.container}>
                 <View style={styles.iconRow}>
-                    <Ionicons name="football" size={40} color={colors.accent} />
+                    <Ionicons name="rocket-outline" size={40} color={colors.accent} />
                 </View>
-                <Text style={styles.title}>Bienvenue sur Sport Zone ⚽</Text>
+                <Text style={styles.title}>Bienvenue sur Eben 🚀</Text>
                 <Text style={styles.text}>
-                    Votre application tout-en-un pour le sport en direct :{"\n\n"}
-                    📺  Streaming IPTV de chaînes sportives{"\n"}
-                    ⚽  Scores en direct et classements{"\n"}
-                    📰  Actualités football{"\n"}
-                    🔍  Recherche de joueurs et équipes{"\n\n"}
+                    Votre plateforme digitale multimédia polyvalente :{"\n\n"}
+                    📺  Portail multimédia intégré{"\n"}
+                    📊  Gestion de données et analyses{"\n"}
+                    📰  Actualités et flux d'information{"\n"}
+                    🔍  Outils de recherche intelligents{"\n\n"}
                     En continuant, vous acceptez notre <Link href="/legal" style={styles.link}>politique de confidentialité</Link> et l'utilisation de cookies pour améliorer votre expérience.
                 </Text>
                 <TouchableOpacity style={styles.button} onPress={acceptConsent}>

@@ -31,7 +31,7 @@ class ErrorBoundary extends React.Component {
                         </View>
                         <Text style={styles.title}>Oops! Something went wrong.</Text>
                         <Text style={styles.subtitle}>
-                            Sport Zone encountered an unexpected problem. We've been notified and are working on it.
+                            Eben encountered an unexpected problem. We've been notified and are working on it.
                         </Text>
 
                         <View style={styles.errorBox}>

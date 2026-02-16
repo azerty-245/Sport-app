@@ -1,8 +1,8 @@
 {
-  "name": "sport-zone",
+  "name": "eben",
   "main": "expo-router/entry",
-  "description": "Football Live Streaming App",
-  "author": "Eben-Tech",
+  "description": "Eben - Solution Digitale Multimédia",
+  "author": "Eben",
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
@@ -59,8 +59,8 @@
     "typescript": "~5.9.2"
   },
   "build": {
-    "appId": "com.eben245.sportzone",
-    "productName": "Sport Zone",
+    "appId": "com.ebentech.eben",
+    "productName": "Eben",
     "files": [
       "dist/**/*",
       "main.mjs",
