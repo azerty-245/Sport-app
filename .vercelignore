@@ -1,0 +1,12 @@
+# Exclude server-side code from Vercel deployment
+server/
+proxy.js
+check_streaming.js
+test.js
+.env
+.env.*
+!.env.example
+node_modules/
+.expo/
+dist/
+dist-electron/
