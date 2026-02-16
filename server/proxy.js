@@ -134,9 +134,9 @@ app.get('/stream', validateApiKey, async (req, res) => {
                 '-reconnect', '1',
                 '-reconnect_at_eof', '1',
                 '-reconnect_streamed', '1',
-                '-reconnect_delay_max', '2', // 2s max delay for reconnection
-                '-probesize', '2000000',      // 2MB probe for faster start
-                '-analyzeduration', '2000000', // 2s analysis for responsiveness
+                '-reconnect_delay_max', '4', // 4s max delay for reconnection
+                '-probesize', '4000000',      // 4MB probe for better stability
+                '-analyzeduration', '4000000', // 4s analysis for smooth playback
                 '-i', url,
                 '-c:v', 'copy',     // Keep video as-is (Fast!)
                 '-c:a', 'aac',      // Convert audio to AAC (Web compatible)
