@@ -4,6 +4,7 @@
  */
 
 
+import { Platform } from 'react-native';
 import { API_KEY, PROXY_URL } from './iptv';
 
 // SofaScore API (Live Scores)
@@ -12,21 +13,26 @@ const OPENLIGA_BASE_URL = 'https://api.openligadb.de';
 
 /**
  * Fetches live football matches worldwide from SofaScore.
- * We use the Oracle Proxy to bypass 403 blocks and CORS.
+ * WE USE A HYBRID STRATEGY: 
+ * - Native (iOS/Android): fetch directly (No IP Block, no CORS).
+ * - Web: use Oracle Proxy (Bypass CORS, but risk IP block).
  */
 export async function fetchSofaScoreLive() {
     try {
-        if (!PROXY_URL) {
-            console.warn('No Proxy URL available for SofaScore proxying');
+        let response;
+        const useProxyOnNative = false; // EXPERIMENTAL: Set true if local phone is blocked
+
+        if (Platform.OS !== 'web' && !useProxyOnNative) {
+            // DIRECT FETCH (Best for Mobile)
+            response = await fetch(SOFASCORE_LIVE_URL, {
+                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36' }
+            });
+        } else {
+            // PROXIED FETCH (Necessary for Web)
+            const proxiedUrl = `${PROXY_URL}/stream?url=${encodeURIComponent(SOFASCORE_LIVE_URL)}&nocode=true&key=${API_KEY}`;
+            response = await fetch(proxiedUrl);
         }
 
-        const proxiedUrl = `${PROXY_URL}/stream?url=${encodeURIComponent(SOFASCORE_LIVE_URL)}&nocode=true&key=${API_KEY}`;
-
-        const response = await fetch(proxiedUrl, {
-            headers: {
-                'Accept': 'application/json',
-            }
-        });
         if (!response.ok) {
             console.warn('SofaScore API returned', response.status);
             return [];

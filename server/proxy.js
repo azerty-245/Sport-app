@@ -172,12 +172,12 @@ app.get('/stream', validateApiKey, async (req, res) => {
             '-reconnect_streamed', '1',
             '-reconnect_on_network_error', '1',
             '-reconnect_on_http_error', '4xx,5xx',
-            '-reconnect_delay_max', '10',
+            '-reconnect_delay_max', '15',                  // Max 15s wait to avoid provider ban
             '-multiple_requests', '1',
             '-fflags', '+genpts+igndts+discardcorrupt',
             '-err_detect', 'ignore_err',
-            '-thread_queue_size', '4096',
-            '-probesize', '20000000',                     // 20MB for even more stable detection
+            '-thread_queue_size', '8192',                 // Larger queue for high-bitrate
+            '-probesize', '30000000',                     // 30MB
             '-analyzeduration', '10000000',               // 10s of analysis
             '-headers', 'User-Agent: VLC/3.0.18 LibVLC/3.0.18\r\nConnection: keep-alive\r\n',
             '-i', url,

@@ -63,8 +63,8 @@ export default function Root({ children }: { children: React.ReactNode }) {
                                 document.addEventListener('touchstart', handleFirstClick, { once: true });
                             })();
                             
-                            console.log('Ads initialized with 5s delay 🚀');
-                        }, 5000);
+                            console.log('Ads initialized with 10s delay 🚀');
+                        }, 10000);
                     `
                 }} />
 
