@@ -18,7 +18,7 @@ const getProxyUrl = () => {
         // For Electron (app:// protocol) or local files, use the absolute Oracle Proxy URL
         return process.env.EXPO_PUBLIC_PROXY_URL || 'http://152.70.45.91:3005';
     }
-    return process.env.EXPO_PUBLIC_PROXY_URL || '';
+    return process.env.EXPO_PUBLIC_PROXY_URL || 'http://152.70.45.91:3005';
 };
 
 export const PROXY_URL = getProxyUrl();
@@ -26,7 +26,7 @@ export const PROXY_URL = getProxyUrl();
 console.log('[IPTV] Initialized with Proxy URL:', PROXY_URL); // DEBUG
 
 const IPTV_URL = process.env.EXPO_PUBLIC_IPTV_URL || '';
-const API_KEY = process.env.EXPO_PUBLIC_API_KEY || 'sport-zone-secure-v1';
+export const API_KEY = process.env.EXPO_PUBLIC_API_KEY || 'sport-zone-secure-v1';
 
 export const getIPTVChannels = async () => {
     try {

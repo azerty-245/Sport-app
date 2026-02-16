@@ -10,7 +10,7 @@ import { borderRadius, colors, fontSize, shadows, spacing } from '../../constant
 import { getAllStreaming, getStreamingChannels } from '../../services/api';
 import { fetchScoreBatHighlights } from '../../services/externalStreams';
 import { fetchAllLiveScores } from '../../services/footballAPIs';
-import { getIPTVChannels } from '../../services/iptv';
+import { API_KEY, getIPTVChannels, PROXY_URL } from '../../services/iptv';
 
 type TabKey = 'channels' | 'highlights';
 
@@ -129,7 +129,7 @@ export default function StreamingScreen() {
             // Force proxy even for API channels if not already proxied
             const finalUrl = rawUrl.includes('/api/iptv/stream') || rawUrl.includes(':3005/stream')
                 ? rawUrl
-                : `${PROXY_URL}/stream?url=${encodeURIComponent(rawUrl)}`;
+                : `${PROXY_URL}/stream?url=${encodeURIComponent(rawUrl)}&key=${API_KEY}`;
             targetStream = { title: 'Direct', url: finalUrl };
         } else {
             targetStream = item.streams?.[activeStreamIndex] || item.streams?.[0];

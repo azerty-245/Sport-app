@@ -18,6 +18,11 @@ module.exports = (req, res) => {
         onProxyRes: (proxyRes) => {
             proxyRes.headers['Access-Control-Allow-Origin'] = '*';
         },
+        onProxyReq: (proxyReq) => {
+            // Automatically add the API Key for all proxied requests to Oracle
+            const apiKey = process.env.EXPO_PUBLIC_API_KEY || 'sport-zone-secure-v1';
+            proxyReq.setHeader('x-api-key', apiKey);
+        },
     });
 
     return proxy(req, res);

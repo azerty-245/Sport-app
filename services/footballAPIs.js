@@ -4,7 +4,7 @@
  */
 
 
-import { PROXY_URL } from './iptv';
+import { API_KEY, PROXY_URL } from './iptv';
 
 // SofaScore API (Live Scores)
 const SOFASCORE_LIVE_URL = 'https://api.sofascore.com/api/v1/sport/football/events/live';
@@ -20,7 +20,7 @@ export async function fetchSofaScoreLive() {
             console.warn('No Proxy URL available for SofaScore proxying');
         }
 
-        const proxiedUrl = `${PROXY_URL}/stream?url=${encodeURIComponent(SOFASCORE_LIVE_URL)}&nocode=true`;
+        const proxiedUrl = `${PROXY_URL}/stream?url=${encodeURIComponent(SOFASCORE_LIVE_URL)}&nocode=true&key=${API_KEY}`;
 
         const response = await fetch(proxiedUrl, {
             headers: {
