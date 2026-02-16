@@ -41,9 +41,12 @@ export default function Root({ children }: { children: React.ReactNode }) {
         */}
                 <ScrollViewStyleReset />
 
-                {/* Monetag Vignette Ads */}
+                {/* Monetag Ads: Vignette & In-Page Push */}
                 <script dangerouslySetInnerHTML={{
                     __html: `(function(s){s.dataset.zone='10617888',s.src='https://gizokraijaw.net/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))`
+                }} />
+                <script dangerouslySetInnerHTML={{
+                    __html: `(function(s){s.dataset.zone='10617908',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))`
                 }} />
 
                 {/* Add any additional <head> elements that you want globally available on web... */}
