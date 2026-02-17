@@ -110,17 +110,19 @@ const broadcastHub = {
 };
 
 class Broadcaster {
-    constructor(url) {
+    constructor(url, sourceName = 'AUTO') {
         this.url = url;
+        this.sourceName = sourceName;
         this.clients = new Set();
         this.ffmpeg = null;
         this.status = 'starting';
         this.cleanupTimer = null;
+        this.errorCount = 0;
         this.startStream();
     }
 
     startStream() {
-        console.log(`[Broadcaster] 📡 Starting FFmpeg for unique channel: ${this.url.substring(0, 40)}...`);
+        console.log(`[Broadcaster] 📡 START | Source: ${this.sourceName} | URL: ${this.url.substring(0, 50)}...`);
 
         this.ffmpeg = spawn('ffmpeg', [
             '-reconnect', '1', '-reconnect_at_eof', '1', '-reconnect_streamed', '1',
@@ -130,8 +132,8 @@ class Broadcaster {
             '-fflags', '+genpts+igndts+discardcorrupt',
             '-err_detect', 'ignore_err',
             '-thread_queue_size', '8192',
-            '-probesize', '5000000',                     // 5MB (User requested 5s buffer)
-            '-analyzeduration', '5000000',               // 5s of analysis
+            '-probesize', '5000000',                     // 5MB
+            '-analyzeduration', '5000000',               // 5s
             '-headers', 'User-Agent: VLC/3.0.18 LibVLC/3.0.18\r\nConnection: keep-alive\r\n',
             '-i', this.url,
             '-c:v', 'copy',
@@ -151,13 +153,14 @@ class Broadcaster {
 
         this.ffmpeg.stderr.on('data', (data) => {
             const msg = data.toString();
-            if (msg.includes('error') || msg.includes('timeout')) {
-                console.warn(`[Broadcaster-FFmpeg] ${msg.trim()}`);
+            if (msg.includes('error') || msg.includes('timeout') || msg.includes('502')) {
+                this.errorCount++;
+                console.warn(`[DIAG-SRC-${this.sourceName}] 🔴 ${msg.trim()}`);
             }
         });
 
         this.ffmpeg.on('close', (code) => {
-            console.log(`[Broadcaster] ⚪ FFmpeg closed (Code ${code}) for ${this.url.substring(0, 30)}`);
+            console.log(`[Broadcaster] ⚪ End (Code ${code}) | Errors: ${this.errorCount} | Source: ${this.sourceName}`);
             this.stopStream();
         });
     }
@@ -170,13 +173,11 @@ class Broadcaster {
         }
         res.setHeader('Content-Type', 'video/mp2t');
         res.setHeader('X-Broadcast-Status', 'Active');
-        console.log(`[Broadcaster] 👥 Client added. Total for this channel: ${this.clients.size}`);
+        console.log(`[Broadcaster] 👥 Join | Clients: ${this.clients.size} | Src: ${this.sourceName}`);
     }
 
     removeClient(res) {
         this.clients.delete(res);
-        console.log(`[Broadcaster] 📉 Client disconnected. Remaining: ${this.clients.size}`);
-
         if (this.clients.size === 0) {
             console.log(`[Broadcaster] ⏳ Last client left. Keeping FFmpeg alive for 30s...`);
             this.cleanupTimer = setTimeout(() => {
@@ -200,7 +201,7 @@ class Broadcaster {
 }
 
 app.get('/stream', validateApiKey, async (req, res) => {
-    let { url, id, nocode } = req.query;
+    let { url, id, nocode, src } = req.query;
 
     if (id) {
         try {
@@ -262,7 +263,7 @@ app.get('/stream', validateApiKey, async (req, res) => {
                 return res.status(503).send('Serveur Surchargé: Limite de 8 chaînes simultanées atteinte.');
             }
 
-            broadcaster = new Broadcaster(url);
+            broadcaster = new Broadcaster(url, src);
             broadcastHub.activeStreams.set(url, broadcaster);
             broadcaster.addClient(res);
         }
@@ -279,10 +280,10 @@ app.get('/stream', validateApiKey, async (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`
-🚀 Streaming Proxy BROADCASTER (v4)
+🚀 Streaming Proxy BROADCASTER (v4.1)
 📍 Port     : ${PORT}
 🔑 Security : API Key Enabled
-📺 Limit    : ${broadcastHub.maxUniqueChannels} Unique Channels
-📡 Sync     : Shared Stream Active
+📺 Limit    : ${broadcastHub.maxUniqueChannels} Channels
+📡 Sync     : Multi-Source Testing Active (?src=0,1,2,3)
     `);
 });
