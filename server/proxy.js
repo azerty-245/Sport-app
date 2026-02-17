@@ -47,41 +47,25 @@ app.get('/playlist', validateApiKey, async (req, res) => {
         return res.send(playlistCache.data);
     }
 
-    const iptvUrls = (process.env.IPTV_URL || '').split(',').map(u => u.trim()).filter(u => u);
+    const iptvUrl = (process.env.IPTV_URL || '').trim();
 
-    if (iptvUrls.length === 0) {
+    if (!iptvUrl) {
         return res.status(500).send('IPTV_URL not configured on server');
     }
 
-    console.log(`[Proxy] Playlist cache expired. Fetching (${iptvUrls.length} sources available)...`);
-
-    let successData = null;
-
-    for (const url of iptvUrls) {
-        try {
-            console.log(`[Proxy] Trying source: ${url.substring(0, 60)}...`);
-            const response = await axios.get(url, {
-                timeout: 10000,
-                headers: { 'User-Agent': 'VLC/3.0.18' }
-            });
-            successData = response.data;
-            break;
-        } catch (error) {
-            console.warn(`[Proxy] Source failed ${url.substring(0, 30)}... : ${error.message}`);
-        }
-    }
-
-    if (!successData) {
-        return res.status(502).send(`All IPTV sources failed.`);
-    }
+    console.log(`[Proxy] Playlist cache expired. Fetching from source...`);
 
     try {
-        const lines = successData.split('\n');
+        const response = await axios.get(iptvUrl, {
+            timeout: 15000,
+            headers: { 'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18' }
+        });
+
+        const lines = response.data.split('\n');
         const rewrittenLines = lines.map(line => {
             const trimmed = line.trim();
             if (trimmed.startsWith('http')) {
                 const encodedUrl = Buffer.from(trimmed).toString('base64');
-                // IMPORTANT: Append the API Key so the stream request is also authorized
                 return `/stream?id=${encodedUrl}&key=${API_KEY}`;
             }
             return line;
@@ -96,8 +80,8 @@ app.get('/playlist', validateApiKey, async (req, res) => {
         res.setHeader('Content-Type', 'text/plain');
         res.send(finalOutput);
     } catch (error) {
-        console.error('[Proxy] Rewrite error:', error.message);
-        res.status(500).send('Failed to process playlist');
+        console.error(`[Proxy] Playlist fetch failed: ${error.message}`);
+        res.status(502).send('IPTV source unavailable');
     }
 });
 
