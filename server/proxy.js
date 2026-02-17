@@ -47,35 +47,44 @@ app.get('/playlist', validateApiKey, async (req, res) => {
         return res.send(playlistCache.data);
     }
 
+    const forcedSource = req.query.src !== undefined ? parseInt(req.query.src) : null;
     const iptvUrls = (process.env.IPTV_URL || '').split(',').map(u => u.trim()).filter(u => u);
 
-    if (iptvUrls.length === 0) {
-        return res.status(500).send('IPTV_URL not configured on server');
-    }
+    if (iptvUrls.length === 0) return res.status(500).send('IPTV_URL not configured');
 
-    console.log(`[Proxy] Playlist cache expired. Fetching (${iptvUrls.length} sources available)...`);
+    const sourcesToFetch = (forcedSource !== null && forcedSource < iptvUrls.length)
+        ? [iptvUrls[forcedSource]]
+        : iptvUrls;
 
-    let lastError = null;
+    console.log(`[Proxy] Fetching Playlist (Source: ${forcedSource !== null ? forcedSource : 'Auto'})...`);
+
     let successData = null;
+    let usedIndex = -1;
 
-    for (const url of iptvUrls) {
+    const userAgents = [
+        'VLC/3.0.18 LibVLC/3.0.18',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'IPTVCore/3.0',
+        'OttPlayer/2.1'
+    ];
+
+    for (let i = 0; i < sourcesToFetch.length; i++) {
+        const url = sourcesToFetch[i];
         try {
-            console.log(`[Proxy] Trying source: ${url.substring(0, 60)}...`);
+            const randomUA = userAgents[Math.floor(Math.random() * userAgents.length)];
             const response = await axios.get(url, {
                 timeout: 10000,
-                headers: { 'User-Agent': 'VLC/3.0.18' }
+                headers: { 'User-Agent': randomUA }
             });
             successData = response.data;
+            usedIndex = forcedSource !== null ? forcedSource : i;
             break;
         } catch (error) {
-            console.warn(`[Proxy] Source failed ${url.substring(0, 30)}... : ${error.message}`);
-            lastError = error;
+            console.warn(`[Proxy] Source ${i} failed: ${error.message}`);
         }
     }
 
-    if (!successData) {
-        return res.status(502).send(`All IPTV sources failed. Last error: ${lastError?.message}`);
-    }
+    if (!successData) return res.status(502).send('All IPTV sources failed.');
 
     try {
         const lines = successData.split('\n');
@@ -83,8 +92,7 @@ app.get('/playlist', validateApiKey, async (req, res) => {
             const trimmed = line.trim();
             if (trimmed.startsWith('http')) {
                 const encodedUrl = Buffer.from(trimmed).toString('base64');
-                // IMPORTANT: Append the API Key so the stream request is also authorized
-                return `/stream?id=${encodedUrl}&key=${API_KEY}`;
+                return `/stream?id=${encodedUrl}&key=${API_KEY}&src=${usedIndex}`;
             }
             return line;
         });
@@ -124,6 +132,14 @@ class Broadcaster {
     startStream() {
         console.log(`[Broadcaster] 📡 START | Source: ${this.sourceName} | URL: ${this.url.substring(0, 50)}...`);
 
+        const userAgents = [
+            'VLC/3.0.18 LibVLC/3.0.18',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'IPTVCore/3.0',
+            'OttPlayer/2.1'
+        ];
+        const randomUA = userAgents[Math.floor(Math.random() * userAgents.length)];
+
         this.ffmpeg = spawn('ffmpeg', [
             '-reconnect', '1', '-reconnect_at_eof', '1', '-reconnect_streamed', '1',
             '-reconnect_on_network_error', '1', '-reconnect_on_http_error', '4xx,5xx',
@@ -132,9 +148,9 @@ class Broadcaster {
             '-fflags', '+genpts+igndts+discardcorrupt',
             '-err_detect', 'ignore_err',
             '-thread_queue_size', '8192',
-            '-probesize', '5000000',                     // 5MB
-            '-analyzeduration', '5000000',               // 5s
-            '-headers', 'User-Agent: VLC/3.0.18 LibVLC/3.0.18\r\nConnection: keep-alive\r\n',
+            '-probesize', '5000000',
+            '-analyzeduration', '5000000',
+            '-headers', `User-Agent: ${randomUA}\r\nConnection: keep-alive\r\n`,
             '-i', this.url,
             '-c:v', 'copy',
             '-c:a', 'aac', '-b:a', '128k',

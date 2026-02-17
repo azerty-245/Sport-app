@@ -41,7 +41,7 @@ def benchmark_source(index):
         print(f"📡 Testing Stream: {stream_url[:60]}...")
         
         connect_start = time.time()
-        stream_resp = requests.get(stream_url, stream=True, timeout=15)
+        stream_resp = requests.get(stream_url, stream=True, timeout=60)
         connect_time = time.time() - connect_start
         
         if stream_resp.status_code != 200:
