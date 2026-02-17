@@ -103,6 +103,102 @@ app.get('/playlist', validateApiKey, async (req, res) => {
     }
 });
 
+// --- BROADCASTER HUB: Multi-user stream sharing ---
+const broadcastHub = {
+    activeStreams: new Map(), // URL -> Broadcaster instance
+    maxUniqueChannels: 8      // Safety limit for 1GB RAM VM
+};
+
+class Broadcaster {
+    constructor(url) {
+        this.url = url;
+        this.clients = new Set();
+        this.ffmpeg = null;
+        this.status = 'starting';
+        this.cleanupTimer = null;
+        this.startStream();
+    }
+
+    startStream() {
+        console.log(`[Broadcaster] 📡 Starting FFmpeg for unique channel: ${this.url.substring(0, 40)}...`);
+
+        this.ffmpeg = spawn('ffmpeg', [
+            '-reconnect', '1', '-reconnect_at_eof', '1', '-reconnect_streamed', '1',
+            '-reconnect_on_network_error', '1', '-reconnect_on_http_error', '4xx,5xx',
+            '-reconnect_delay_max', '15',
+            '-multiple_requests', '1',
+            '-fflags', '+genpts+igndts+discardcorrupt',
+            '-err_detect', 'ignore_err',
+            '-thread_queue_size', '8192',
+            '-probesize', '5000000',                     // 5MB (User requested 5s buffer)
+            '-analyzeduration', '5000000',               // 5s of analysis
+            '-headers', 'User-Agent: VLC/3.0.18 LibVLC/3.0.18\r\nConnection: keep-alive\r\n',
+            '-i', this.url,
+            '-c:v', 'copy',
+            '-c:a', 'aac', '-b:a', '128k',
+            '-af', 'aresample=async=1',
+            '-avoid_negative_ts', 'make_zero',
+            '-f', 'mpegts', '-muxdelay', '0',
+            'pipe:1'
+        ]);
+
+        this.ffmpeg.stdout.on('data', (chunk) => {
+            this.status = 'streaming';
+            for (const client of this.clients) {
+                client.write(chunk);
+            }
+        });
+
+        this.ffmpeg.stderr.on('data', (data) => {
+            const msg = data.toString();
+            if (msg.includes('error') || msg.includes('timeout')) {
+                console.warn(`[Broadcaster-FFmpeg] ${msg.trim()}`);
+            }
+        });
+
+        this.ffmpeg.on('close', (code) => {
+            console.log(`[Broadcaster] ⚪ FFmpeg closed (Code ${code}) for ${this.url.substring(0, 30)}`);
+            this.stopStream();
+        });
+    }
+
+    addClient(res) {
+        this.clients.add(res);
+        if (this.cleanupTimer) {
+            clearTimeout(this.cleanupTimer);
+            this.cleanupTimer = null;
+        }
+        res.setHeader('Content-Type', 'video/mp2t');
+        res.setHeader('X-Broadcast-Status', 'Active');
+        console.log(`[Broadcaster] 👥 Client added. Total for this channel: ${this.clients.size}`);
+    }
+
+    removeClient(res) {
+        this.clients.delete(res);
+        console.log(`[Broadcaster] 📉 Client disconnected. Remaining: ${this.clients.size}`);
+
+        if (this.clients.size === 0) {
+            console.log(`[Broadcaster] ⏳ Last client left. Keeping FFmpeg alive for 30s...`);
+            this.cleanupTimer = setTimeout(() => {
+                console.log(`[Broadcaster] 🛑 Cleanup: Closing idle stream.`);
+                this.stopStream();
+            }, 30000);
+        }
+    }
+
+    stopStream() {
+        if (this.ffmpeg) {
+            this.ffmpeg.kill('SIGKILL');
+            this.ffmpeg = null;
+        }
+        for (const client of this.clients) {
+            client.end();
+        }
+        this.clients.clear();
+        broadcastHub.activeStreams.delete(this.url);
+    }
+}
+
 app.get('/stream', validateApiKey, async (req, res) => {
     let { url, id, nocode } = req.query;
 
@@ -116,23 +212,17 @@ app.get('/stream', validateApiKey, async (req, res) => {
 
     if (!url) return res.status(400).send('Missing "url" or "id"');
 
-    console.log(`[Proxy] Requesting: ${url.substring(0, 70)}... (nocode=${!!nocode})`);
-
     // Standard headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
 
     const hasFFmpeg = await checkFFmpeg();
 
-    // ─── Stealth Mode (Pour SofaScore / APIs) ───
+    // ─── Stealth Mode (SofaScore / APIs) ───
     if (nocode === 'true' || !hasFFmpeg) {
         try {
-            console.log(`[Proxy] Ultra-Stealth fetch: ${url.substring(0, 50)}...`);
             const response = await axios({
-                method: 'get',
-                url: url,
-                responseType: 'stream',
-                timeout: 15000,
+                method: 'get', url: url, responseType: 'stream', timeout: 15000,
                 headers: {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
                     'Accept': 'application/json, text/plain, */*',
@@ -143,11 +233,8 @@ app.get('/stream', validateApiKey, async (req, res) => {
                     'sec-ch-ua': '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
                     'sec-ch-ua-mobile': '?0',
                     'sec-ch-ua-platform': '"Windows"',
-                    'Sec-Fetch-Dest': 'empty',
-                    'Sec-Fetch-Mode': 'cors',
-                    'Sec-Fetch-Site': 'same-site',
-                    'Priority': 'u=1, i',
-                    'Connection': 'keep-alive'
+                    'Sec-Fetch-Dest': 'empty', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Site': 'same-site',
+                    'Priority': 'u=1, i', 'Connection': 'keep-alive'
                 }
             });
             res.setHeader('Content-Type', response.headers['content-type'] || 'application/json');
@@ -155,75 +242,47 @@ app.get('/stream', validateApiKey, async (req, res) => {
             res.on('close', () => response.data.destroy());
             return;
         } catch (error) {
-            console.error('[Proxy] Stealth Error (Persistent 403?):', error.message);
-            if (!res.headersSent) res.status(error.response ? error.response.status : 502).send(error.message);
+            console.error('[Proxy] Stealth Error:', error.message);
+            if (!res.headersSent) res.status(502).send(error.message);
             return;
         }
     }
 
-    // ─── ULTRA-ROBUST IPTV MODE (Buffer 10MB + Debug Logs) ───
+    // ─── MULTI-USER BROADCASTER MODE ───
     try {
-        console.log(`[Proxy] 🟢 New Stream: ${url.substring(0, 40)}...`);
-        console.log(`[Proxy] Settings: Buffer=20MB, Reconnect=Aggressive, Sync=Forced`);
+        let broadcaster = broadcastHub.activeStreams.get(url);
 
-        const ffmpeg = spawn('ffmpeg', [
-            '-reconnect', '1',
-            '-reconnect_at_eof', '1',
-            '-reconnect_streamed', '1',
-            '-reconnect_on_network_error', '1',
-            '-reconnect_on_http_error', '4xx,5xx',
-            '-reconnect_delay_max', '15',                  // Max 15s wait to avoid provider ban
-            '-multiple_requests', '1',
-            '-fflags', '+genpts+igndts+discardcorrupt',
-            '-err_detect', 'ignore_err',
-            '-thread_queue_size', '8192',                 // Larger queue for high-bitrate
-            '-probesize', '30000000',                     // 30MB
-            '-analyzeduration', '10000000',               // 10s of analysis
-            '-headers', 'User-Agent: VLC/3.0.18 LibVLC/3.0.18\r\nConnection: keep-alive\r\n',
-            '-i', url,
-            '-c:v', 'copy',
-            '-c:a', 'aac', '-b:a', '128k',
-            '-af', 'aresample=async=1',
-            '-avoid_negative_ts', 'make_zero',
-            '-f', 'mpegts', '-muxdelay', '0',
-            'pipe:1'
-        ]);
-
-        ffmpeg.stderr.on('data', (data) => {
-            const msg = data.toString();
-            // Log only critical errors or interesting warnings to avoid flooding
-            if (msg.includes('error') || msg.includes('timeout') || msg.includes('Corrupt')) {
-                console.warn(`[FFmpeg-Diagnostics] ${msg.trim()}`);
+        if (broadcaster) {
+            console.log(`[Hub] 🟢 Joining existing broadcast for: ${url.substring(0, 30)}...`);
+            broadcaster.addClient(res);
+        } else {
+            // Check resource limit
+            if (broadcastHub.activeStreams.size >= broadcastHub.maxUniqueChannels) {
+                console.warn(`[Hub] 🔴 Resource limit reached (${broadcastHub.maxUniqueChannels} channels).`);
+                return res.status(503).send('Serveur Surchargé: Limite de 8 chaînes simultanées atteinte.');
             }
-        });
 
-        res.setHeader('Content-Type', 'video/mp2t');
-        ffmpeg.stdout.pipe(res);
-
-        ffmpeg.on('close', (code) => {
-            if (code !== 0 && code !== 255) {
-                console.error(`[Proxy] 🔴 Stream FAILED (Code ${code}). Possible provider block or dead URL.`);
-            } else {
-                console.log(`[Proxy] ⚪ Stream ended normally (Code ${code})`);
-            }
-            res.end();
-        });
+            broadcaster = new Broadcaster(url);
+            broadcastHub.activeStreams.set(url, broadcaster);
+            broadcaster.addClient(res);
+        }
 
         res.on('close', () => {
-            console.log('[Proxy] 🟡 Client disconnected (Phone/Browser closed or changed channel)');
-            ffmpeg.kill();
+            broadcaster.removeClient(res);
         });
+
     } catch (e) {
-        console.error('[Proxy] 🔴 Spawn Error:', e.message);
-        if (!res.headersSent) res.status(500).send('FFmpeg Error');
+        console.error('[Proxy] Broadcaster Error:', e.message);
+        if (!res.headersSent) res.status(500).send('Hub Error');
     }
 });
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`
-🚀 Streaming Proxy UNIFIÉ (Sécurisé + Robuste)
-📍 Port : ${PORT}
+🚀 Streaming Proxy BROADCASTER (v4)
+📍 Port     : ${PORT}
 🔑 Security : API Key Enabled
-⏱️  Cache : 6 Hours Enabled
+📺 Limit    : ${broadcastHub.maxUniqueChannels} Unique Channels
+📡 Sync     : Shared Stream Active
     `);
 });
