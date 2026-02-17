@@ -37,6 +37,9 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# IPTV Testing (Local Only)
+test_sources.py
+
 # generated native folders
 /ios
 /android

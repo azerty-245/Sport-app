@@ -47,44 +47,33 @@ app.get('/playlist', validateApiKey, async (req, res) => {
         return res.send(playlistCache.data);
     }
 
-    const forcedSource = req.query.src !== undefined ? parseInt(req.query.src) : null;
     const iptvUrls = (process.env.IPTV_URL || '').split(',').map(u => u.trim()).filter(u => u);
 
-    if (iptvUrls.length === 0) return res.status(500).send('IPTV_URL not configured');
+    if (iptvUrls.length === 0) {
+        return res.status(500).send('IPTV_URL not configured on server');
+    }
 
-    const sourcesToFetch = (forcedSource !== null && forcedSource < iptvUrls.length)
-        ? [iptvUrls[forcedSource]]
-        : iptvUrls;
-
-    console.log(`[Proxy] Fetching Playlist (Source: ${forcedSource !== null ? forcedSource : 'Auto'})...`);
+    console.log(`[Proxy] Playlist cache expired. Fetching (${iptvUrls.length} sources available)...`);
 
     let successData = null;
-    let usedIndex = -1;
 
-    const userAgents = [
-        'VLC/3.0.18 LibVLC/3.0.18',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'IPTVCore/3.0',
-        'OttPlayer/2.1'
-    ];
-
-    for (let i = 0; i < sourcesToFetch.length; i++) {
-        const url = sourcesToFetch[i];
+    for (const url of iptvUrls) {
         try {
-            const randomUA = userAgents[Math.floor(Math.random() * userAgents.length)];
+            console.log(`[Proxy] Trying source: ${url.substring(0, 60)}...`);
             const response = await axios.get(url, {
                 timeout: 10000,
-                headers: { 'User-Agent': randomUA }
+                headers: { 'User-Agent': 'VLC/3.0.18' }
             });
             successData = response.data;
-            usedIndex = forcedSource !== null ? forcedSource : i;
             break;
         } catch (error) {
-            console.warn(`[Proxy] Source ${i} failed: ${error.message}`);
+            console.warn(`[Proxy] Source failed ${url.substring(0, 30)}... : ${error.message}`);
         }
     }
 
-    if (!successData) return res.status(502).send('All IPTV sources failed.');
+    if (!successData) {
+        return res.status(502).send(`All IPTV sources failed.`);
+    }
 
     try {
         const lines = successData.split('\n');
@@ -92,7 +81,8 @@ app.get('/playlist', validateApiKey, async (req, res) => {
             const trimmed = line.trim();
             if (trimmed.startsWith('http')) {
                 const encodedUrl = Buffer.from(trimmed).toString('base64');
-                return `/stream?id=${encodedUrl}&key=${API_KEY}&src=${usedIndex}`;
+                // IMPORTANT: Append the API Key so the stream request is also authorized
+                return `/stream?id=${encodedUrl}&key=${API_KEY}`;
             }
             return line;
         });
@@ -118,27 +108,17 @@ const broadcastHub = {
 };
 
 class Broadcaster {
-    constructor(url, sourceName = 'AUTO') {
+    constructor(url) {
         this.url = url;
-        this.sourceName = sourceName;
         this.clients = new Set();
         this.ffmpeg = null;
         this.status = 'starting';
         this.cleanupTimer = null;
-        this.errorCount = 0;
         this.startStream();
     }
 
     startStream() {
-        console.log(`[Broadcaster] 📡 START | Source: ${this.sourceName} | URL: ${this.url.substring(0, 50)}...`);
-
-        const userAgents = [
-            'VLC/3.0.18 LibVLC/3.0.18',
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'IPTVCore/3.0',
-            'OttPlayer/2.1'
-        ];
-        const randomUA = userAgents[Math.floor(Math.random() * userAgents.length)];
+        console.log(`[Broadcaster] 📡 Starting FFmpeg for unique channel: ${this.url.substring(0, 30)}...`);
 
         this.ffmpeg = spawn('ffmpeg', [
             '-reconnect', '1', '-reconnect_at_eof', '1', '-reconnect_streamed', '1',
@@ -148,9 +128,9 @@ class Broadcaster {
             '-fflags', '+genpts+igndts+discardcorrupt',
             '-err_detect', 'ignore_err',
             '-thread_queue_size', '8192',
-            '-probesize', '5000000',
-            '-analyzeduration', '5000000',
-            '-headers', `User-Agent: ${randomUA}\r\nConnection: keep-alive\r\n`,
+            '-probesize', '5000000',                     // 5MB
+            '-analyzeduration', '5000000',               // 5s
+            '-headers', 'User-Agent: VLC/3.0.18 LibVLC/3.0.18\r\nConnection: keep-alive\r\n',
             '-i', this.url,
             '-c:v', 'copy',
             '-c:a', 'aac', '-b:a', '128k',
@@ -169,14 +149,13 @@ class Broadcaster {
 
         this.ffmpeg.stderr.on('data', (data) => {
             const msg = data.toString();
-            if (msg.includes('error') || msg.includes('timeout') || msg.includes('502')) {
-                this.errorCount++;
-                console.warn(`[DIAG-SRC-${this.sourceName}] 🔴 ${msg.trim()}`);
+            if (msg.includes('error') || msg.includes('timeout')) {
+                console.warn(`[Broadcaster-FFmpeg] ${msg.trim()}`);
             }
         });
 
         this.ffmpeg.on('close', (code) => {
-            console.log(`[Broadcaster] ⚪ End (Code ${code}) | Errors: ${this.errorCount} | Source: ${this.sourceName}`);
+            console.log(`[Broadcaster] ⚪ FFmpeg closed (Code ${code}) for ${this.url.substring(0, 30)}`);
             this.stopStream();
         });
     }
@@ -188,8 +167,7 @@ class Broadcaster {
             this.cleanupTimer = null;
         }
         res.setHeader('Content-Type', 'video/mp2t');
-        res.setHeader('X-Broadcast-Status', 'Active');
-        console.log(`[Broadcaster] 👥 Join | Clients: ${this.clients.size} | Src: ${this.sourceName}`);
+        console.log(`[Broadcaster] 👥 Client added. Total for this channel: ${this.clients.size}`);
     }
 
     removeClient(res) {
@@ -217,7 +195,7 @@ class Broadcaster {
 }
 
 app.get('/stream', validateApiKey, async (req, res) => {
-    let { url, id, nocode, src } = req.query;
+    let { url, id, nocode } = req.query;
 
     if (id) {
         try {
@@ -229,13 +207,11 @@ app.get('/stream', validateApiKey, async (req, res) => {
 
     if (!url) return res.status(400).send('Missing "url" or "id"');
 
-    // Standard headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
 
     const hasFFmpeg = await checkFFmpeg();
 
-    // ─── Stealth Mode (SofaScore / APIs) ───
     if (nocode === 'true' || !hasFFmpeg) {
         try {
             const response = await axios({
@@ -276,10 +252,10 @@ app.get('/stream', validateApiKey, async (req, res) => {
             // Check resource limit
             if (broadcastHub.activeStreams.size >= broadcastHub.maxUniqueChannels) {
                 console.warn(`[Hub] 🔴 Resource limit reached (${broadcastHub.maxUniqueChannels} channels).`);
-                return res.status(503).send('Serveur Surchargé: Limite de 8 chaînes simultanées atteinte.');
+                return res.status(503).send('Serveur Surchargé: Limite reached.');
             }
 
-            broadcaster = new Broadcaster(url, src);
+            broadcaster = new Broadcaster(url);
             broadcastHub.activeStreams.set(url, broadcaster);
             broadcaster.addClient(res);
         }
@@ -296,10 +272,10 @@ app.get('/stream', validateApiKey, async (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`
-🚀 Streaming Proxy BROADCASTER (v4.1)
+🚀 Streaming Proxy BROADCASTER (v4 Final)
 📍 Port     : ${PORT}
 🔑 Security : API Key Enabled
-📺 Limit    : ${broadcastHub.maxUniqueChannels} Channels
-📡 Sync     : Multi-Source Testing Active (?src=0,1,2,3)
+📺 Limit    : ${broadcastHub.maxUniqueChannels} Unique Channels
+📡 Sync     : Shared Stream Active
     `);
 });
