@@ -107,20 +107,24 @@ class Broadcaster {
         this.ffmpeg = spawn('ffmpeg', [
             '-reconnect', '1', '-reconnect_at_eof', '1', '-reconnect_streamed', '1',
             '-reconnect_on_network_error', '1', '-reconnect_on_http_error', '4xx,5xx',
-            '-reconnect_delay_max', '15',
+            '-reconnect_delay_max', '5',
+            '-rw_timeout', '10000000',
             '-multiple_requests', '1',
             '-fflags', '+genpts+igndts+discardcorrupt',
             '-err_detect', 'ignore_err',
             '-thread_queue_size', '8192',
-            '-probesize', '5000000',                     // 5MB
-            '-analyzeduration', '5000000',               // 5s
+            '-probesize', '10000000',
+            '-analyzeduration', '10000000',
             '-headers', 'User-Agent: VLC/3.0.18 LibVLC/3.0.18\r\nConnection: keep-alive\r\n',
             '-i', this.url,
             '-c:v', 'copy',
             '-c:a', 'aac', '-b:a', '128k',
             '-af', 'aresample=async=1',
             '-avoid_negative_ts', 'make_zero',
-            '-f', 'mpegts', '-muxdelay', '0',
+            '-max_muxing_queue_size', '2048',
+            '-f', 'mpegts',
+            '-mpegts_flags', 'resend_headers',
+            '-muxdelay', '0', '-muxpreload', '1',
             'pipe:1'
         ]);
 
