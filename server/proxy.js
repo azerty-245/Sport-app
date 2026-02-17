@@ -14,7 +14,7 @@ let playlistCache = {
     data: null,
     timestamp: 0,
 };
-const CACHE_DURATION = 1000 * 60 * 60 * 6; // 6 Hours
+const CACHE_DURATION = 1000 * 60 * 10; // 10 Minutes (Reduced for testing)
 
 app.use(cors());
 
@@ -260,10 +260,11 @@ app.get('/stream', validateApiKey, async (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`
-🚀 Streaming Proxy BROADCASTER (v4 Final hein)
+🚀 Streaming Proxy BROADCASTER (v5 Source Switcher)
 📍 Port     : ${PORT}
 🔑 Security : API Key Enabled
 📺 Limit    : ${broadcastHub.maxUniqueChannels} Unique Channels
 📡 Sync     : Shared Stream Active
+🔗 Source   : ${process.env.IPTV_URL ? process.env.IPTV_URL.substring(0, 35) + '...' : 'NONE'}
     `);
 });
