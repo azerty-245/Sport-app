@@ -197,7 +197,7 @@ export default function StreamingScreen() {
             <video id="video" controls autoplay playsinline></video>
             <script>
               var video = document.getElementById('video');
-              var src = '${url}';
+              var src = ${JSON.stringify(url)};
               if (Hls.isSupported()) {
                 var hls = new Hls({ enableWorker: true, lowLatencyMode: true });
                 hls.loadSource(src);
@@ -538,6 +538,15 @@ export default function StreamingScreen() {
         }
     };
 
+    // Prevent hydration mismatch by not rendering the full UI until mounted
+    if (!isMounted) {
+        return (
+            <View style={styles.container}>
+                <MatchSkeleton />
+            </View>
+        );
+    }
+
     return (
         <View style={styles.container}>
             {/* Tab bar */}
@@ -592,11 +601,11 @@ export default function StreamingScreen() {
                             {selectedStream?.homeTeam} {selectedStream?.awayTeam ? `vs ${selectedStream.awayTeam}` : ''}
                         </Text>
                         <TouchableOpacity
-                            onPress={() => {
-                                // Hack to force reload: clear and reset selected stream
-                                const current = selectedStream;
+                            onPress={async () => {
+                                // Clear cache and re-fetch before reloading player
                                 setSelectedStream(null);
-                                setTimeout(() => setSelectedStream(current), 50);
+                                await fetchData();
+                                setTimeout(() => setSelectedStream(selectedStream), 100);
                             }}
                             style={styles.actionBtn}
                         >

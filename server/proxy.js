@@ -16,9 +16,10 @@ const API_KEY = process.env.API_KEY || 'sport-zone-secure-v1';
 let playlistCache = {
     data: null,
     timestamp: 0,
-    configHash: null // Track configuration changes
+    configHash: null
 };
-const REFRESH_INTERVAL = 1000 * 60 * 15; // Refresh more frequently (15 minutes)
+const REFRESH_INTERVAL = 1000 * 60 * 10; // Refresh more frequently (10 minutes)
+const MAX_UNIQUE_CHANNELS = 5; // Reduced to 5 to save RAM on 1GB VM
 
 app.use(cors());
 
@@ -94,15 +95,34 @@ if (process.env.IPTV_URL) {
 
 app.get('/playlist', validateApiKey, async (req, res) => {
     const forceRefresh = req.query.refresh === 'true';
-    const configChanged = playlistCache.configHash !== process.env.IPTV_URL;
 
-    if (playlistCache.data && !forceRefresh && !configChanged) {
+    // Check if configuration on disk changed
+    let currentHash = process.env.IPTV_URL;
+    try {
+        // Force reload dotenv to detect file changes without server restart
+        const fs = require('fs');
+        const path = require('path');
+        const envPath = path.join(__dirname, '.env');
+        if (fs.existsSync(envPath)) {
+            const result = require('dotenv').parse(fs.readFileSync(envPath));
+            if (result.IPTV_URL) {
+                currentHash = result.IPTV_URL;
+                process.env.IPTV_URL = result.IPTV_URL; // Update in-memory env
+            }
+        }
+    } catch (e) {
+        console.error('[Proxy] Error re-reading .env:', e.message);
+    }
+
+    const configChanged = playlistCache.configHash !== currentHash;
+
+    if (playlistCache.data && !forceRefresh && !configChanged && (Date.now() - playlistCache.timestamp < REFRESH_INTERVAL)) {
         res.setHeader('Content-Type', 'text/plain');
         return res.send(playlistCache.data);
     }
 
     if (forceRefresh) console.log('[Proxy] 🔄 Manual refresh requested...');
-    if (configChanged) console.log('[Proxy] ⚙️ Config change detected, updating...');
+    if (configChanged) console.log('[Proxy] ⚙️ Config change detected in .env, updating cache...');
 
     const success = await fetchPlaylist();
     if (success && playlistCache.data) {
@@ -241,8 +261,9 @@ app.get('/stream', validateApiKey, async (req, res) => {
     try {
         let broadcaster = broadcastHub.activeStreams.get(url);
         if (!broadcaster) {
-            if (broadcastHub.activeStreams.size >= broadcastHub.maxUniqueChannels) {
-                return res.status(503).send('Server Busy');
+            if (broadcastHub.activeStreams.size >= MAX_UNIQUE_CHANNELS) {
+                console.warn(`[Proxy] Hub Busy: ${broadcastHub.activeStreams.size}/${MAX_UNIQUE_CHANNELS} channels.`);
+                return res.status(503).send('Server Busy: Too many active viewers');
             }
             broadcaster = new Broadcaster(url);
             broadcastHub.activeStreams.set(url, broadcaster);
