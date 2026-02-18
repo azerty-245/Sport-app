@@ -267,13 +267,10 @@ export default function StreamingScreen() {
                   url: src
                 }, {
                   enableWorker: true,
-                  liveBufferLatencyChasing: true,
-                  liveBufferLatencyMaxLatency: 20, // Increased to avoid jumps
-                  liveBufferLatencyMinRemain: 5,  // Keep more buffer for stability
-                  liveSync: true,
-                  liveSyncTarget: 8,              // Target 8s delay instead of 5s
+                  liveBufferLatencyChasing: false, // Force stable playback without jumps
+                  liveSync: false,                 // Disable sync to prevent skipping frames
                   enableStashBuffer: true,
-                  stashInitialSize: 1024 * 1024, // 1MB stash for smoother starts
+                  stashInitialSize: 2 * 1024 * 1024, // 2MB buffer for high stability
                   autoCleanupSourceBuffer: true,
                   autoCleanupMaxBackwardDuration: 30,
                   autoCleanupMinBackwardDuration: 15,
