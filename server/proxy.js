@@ -181,7 +181,17 @@ class Broadcaster {
     startStream() {
         if (this.status === 'reconnecting') return;
 
-        console.log(`[Broadcaster] 📡 Starting FFmpeg: ${this.url.substring(0, 30)}...`);
+        // --- LOOP PROTECTION ---
+        if (this.url.includes('trycloudflare.com') || this.url.includes('localhost') || this.url.includes('127.0.0.1')) {
+            console.error(`[Broadcaster] 🛑 LOOP DETECTED: Refusing to proxy self (${this.url.substring(0, 40)}...)`);
+            this.status = 'error';
+            return;
+        }
+
+        console.log(`[Broadcaster] 📡 Starting FFmpeg: ${this.url.substring(0, 40)}...`);
+        this.bytesTransferred = 0;
+        this.lastLogTime = Date.now();
+        this.lastDataTime = Date.now();
 
         this.ffmpeg = spawn('ffmpeg', [
             '-reconnect', '1', '-reconnect_at_eof', '1', '-reconnect_streamed', '1',
@@ -193,7 +203,7 @@ class Broadcaster {
             '-max_delay', '500000',
             '-probesize', '5000000',
             '-analyzeduration', '5000000',
-            '-headers', 'User-Agent: Smart IPTV\r\nConnection: keep-alive\r\n',
+            '-user_agent', 'SmartIPTV',
             '-i', this.url,
             '-c:v', 'copy',
             '-c:a', 'aac', '-b:a', '128k',
@@ -206,11 +216,32 @@ class Broadcaster {
             'pipe:1'
         ]);
 
+        let ffmpegLogs = '';
+        this.ffmpeg.stderr.on('data', (data) => {
+            const msg = data.toString();
+            if (msg.includes('error') || msg.includes('failed')) {
+                ffmpegLogs += msg;
+                if (ffmpegLogs.length > 500) ffmpegLogs = ffmpegLogs.substring(ffmpegLogs.length - 500);
+            }
+        });
+
         this.ffmpeg.stdout.on('data', (chunk) => {
+            const now = Date.now();
+            this.lastDataTime = now;
+            this.bytesTransferred += chunk.length;
+
             if (this.status !== 'streaming') {
-                console.log(`[Broadcaster] ✅ Stream flowing for ${this.url.substring(0, 20)}...`);
+                console.log(`[Broadcaster] ✅ First packet received for ${this.url.substring(0, 20)}...`);
             }
             this.status = 'streaming';
+
+            if (now - this.lastLogTime > 10000) {
+                const kbps = Math.round((this.bytesTransferred / 1024) / ((now - this.lastLogTime) / 1000));
+                console.log(`[Broadcaster-Diag] 📊 Bitrate: ${kbps} KB/s | Clients: ${this.clients.size}`);
+                this.bytesTransferred = 0;
+                this.lastLogTime = now;
+            }
+
             for (const client of this.clients) {
                 try {
                     client.write(chunk);
@@ -220,10 +251,24 @@ class Broadcaster {
             }
         });
 
+        this.starvationCheck = setInterval(() => {
+            if (this.status === 'streaming' && Date.now() - this.lastDataTime > 5000) {
+                console.warn(`[Broadcaster-Diag] 💀 SOURCE STARVATION: No data from IPTV for 5s. Force Restarting FFmpeg.`);
+                if (this.ffmpeg) this.ffmpeg.kill('SIGKILL');
+            }
+        }, 2000);
+
         this.ffmpeg.on('close', (code) => {
-            console.log(`[Broadcaster] ⚠️ FFmpeg closed (Code ${code}). Attempting silent reconnect...`);
+            if (code !== 0 && code !== null) {
+                console.error(`[Broadcaster] ❌ FFmpeg Exit Code ${code} for ${this.url.substring(0, 30)}`);
+                if (ffmpegLogs) console.error(`[Broadcaster-Error] Logs: ${ffmpegLogs}`);
+            } else {
+                console.log(`[Broadcaster] ⚠️ FFmpeg closed (Code ${code}). Attempting silent reconnect...`);
+            }
+
             this.ffmpeg = null;
-            if (this.clients.size > 0) {
+            clearInterval(this.starvationCheck);
+            if (this.clients.size > 0 && this.status !== 'error') {
                 this.status = 'reconnecting';
                 setTimeout(() => this.startStream(), 2000);
             } else {
@@ -231,7 +276,7 @@ class Broadcaster {
             }
         });
 
-        this.ffmpeg.getStderr = () => { }; // Prevent mem leak
+        this.ffmpeg.getStderr = () => { };
     }
 
     addClient(res) {
