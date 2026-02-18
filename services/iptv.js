@@ -20,11 +20,27 @@ const getMetadataProxy = () => {
     return process.env.EXPO_PUBLIC_PROXY_URL || 'http://152.70.45.91:3005';
 };
 
-export const PROXY_URL = getMetadataProxy();
-export const STREAM_PROXY_URL = process.env.EXPO_PUBLIC_PROXY_URL || 'http://152.70.45.91:3005';
+export let PROXY_URL = getMetadataProxy();
+export let STREAM_PROXY_URL = process.env.EXPO_PUBLIC_PROXY_URL || 'http://152.70.45.91:3005';
+
+// Dynamic Tunnel Discovery:
+// Fetch the current secure tunnel URL from the VM once at startup.
+const discoverTunnel = async () => {
+    try {
+        console.log('[IPTV] Discovering secure tunnel...');
+        const response = await fetch(`${PROXY_URL}/tunnel-info`);
+        const data = await response.json();
+        if (data.tunnelUrl) {
+            STREAM_PROXY_URL = data.tunnelUrl;
+            console.log('[IPTV] 🛡️ Secure Tunnel URL discovered:', STREAM_PROXY_URL);
+        }
+    } catch (e) {
+        console.warn('[IPTV] Tunnel discovery failed, falling back to IP:', STREAM_PROXY_URL);
+    }
+};
+discoverTunnel();
 
 console.log('[IPTV] Initialized with Metadata Proxy (HTTPS):', PROXY_URL);
-console.log('[IPTV] Initialized with Stream Proxy (HTTP/VM):', STREAM_PROXY_URL);
 
 const IPTV_URL = process.env.EXPO_PUBLIC_IPTV_URL || '';
 export const API_KEY = process.env.EXPO_PUBLIC_API_KEY || 'sport-zone-secure-v1';

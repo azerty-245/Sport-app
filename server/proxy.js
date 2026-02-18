@@ -6,6 +6,8 @@ const { spawn } = require('child_process');
 const app = express();
 const compression = require('compression');
 app.use(compression());
+const fs = require('fs');
+const path = require('path');
 
 const PORT = 3005;
 
@@ -18,9 +20,26 @@ let playlistCache = {
     timestamp: 0,
     configHash: null
 };
-const REFRESH_INTERVAL = 1000 * 60 * 60 * 24 * 7; // Persistent cache for 7 days
-const SOFT_REFRESH_INTERVAL = 1000 * 60 * 60 * 24; // Check source health every 24 hours
-const MAX_UNIQUE_CHANNELS = 5; // Reduced to 5 to save RAM on 1GB VM
+const REFRESH_INTERVAL = 1000 * 60 * 60 * 24 * 7;
+const SOFT_REFRESH_INTERVAL = 1000 * 60 * 60 * 24;
+const MAX_UNIQUE_CHANNELS = 5;
+
+// --- TUNNEL DISCOVERY ---
+let tunnelUrl = null;
+const TUNNEL_URL_FILE = path.join(__dirname, 'tunnel_url.txt');
+
+function updateTunnelUrl() {
+    try {
+        if (fs.existsSync(TUNNEL_URL_FILE)) {
+            tunnelUrl = fs.readFileSync(TUNNEL_URL_FILE, 'utf8').trim();
+            console.log(`[Proxy] 🛡️ Secure Tunnel Active: ${tunnelUrl}`);
+        }
+    } catch (e) {
+        console.error('[Proxy] Failed to read tunnel URL');
+    }
+}
+fs.watchFile(TUNNEL_URL_FILE, updateTunnelUrl);
+updateTunnelUrl();
 
 app.use(cors());
 
@@ -93,6 +112,11 @@ const fetchPlaylist = async () => {
 if (process.env.IPTV_URL) {
     setInterval(fetchPlaylist, REFRESH_INTERVAL);
 }
+
+// Discovery endpoint for the frontend to find the current secure tunnel URL
+app.get('/tunnel-info', (req, res) => {
+    res.json({ tunnelUrl: tunnelUrl || null });
+});
 
 app.get('/playlist', validateApiKey, async (req, res) => {
     const forceRefresh = req.query.refresh === 'true';
