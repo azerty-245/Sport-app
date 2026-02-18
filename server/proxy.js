@@ -16,8 +16,9 @@ const API_KEY = process.env.API_KEY || 'sport-zone-secure-v1';
 let playlistCache = {
     data: null,
     timestamp: 0,
+    configHash: null // Track configuration changes
 };
-const REFRESH_INTERVAL = 1000 * 60 * 55; // Refresh every 55 minutes
+const REFRESH_INTERVAL = 1000 * 60 * 15; // Refresh more frequently (15 minutes)
 
 app.use(cors());
 
@@ -73,6 +74,7 @@ const fetchPlaylist = async () => {
             const finalOutput = rewrittenLines.join('\n');
             playlistCache.data = finalOutput;
             playlistCache.timestamp = Date.now();
+            playlistCache.configHash = process.env.IPTV_URL; // Save hash of sources used
             console.log(`[Proxy] ✅ Success with source ${i + 1}! Size: ${(finalOutput.length / 1024).toFixed(2)} KB. Time: ${Date.now() - start}ms`);
             return true;
         } catch (error) {
@@ -91,11 +93,17 @@ if (process.env.IPTV_URL) {
 }
 
 app.get('/playlist', validateApiKey, async (req, res) => {
-    if (playlistCache.data) {
+    const forceRefresh = req.query.refresh === 'true';
+    const configChanged = playlistCache.configHash !== process.env.IPTV_URL;
+
+    if (playlistCache.data && !forceRefresh && !configChanged) {
         res.setHeader('Content-Type', 'text/plain');
         return res.send(playlistCache.data);
     }
-    console.log('[Proxy] Cache empty, waiting for fetch...');
+
+    if (forceRefresh) console.log('[Proxy] 🔄 Manual refresh requested...');
+    if (configChanged) console.log('[Proxy] ⚙️ Config change detected, updating...');
+
     const success = await fetchPlaylist();
     if (success && playlistCache.data) {
         res.setHeader('Content-Type', 'text/plain');
