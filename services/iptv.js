@@ -78,9 +78,8 @@ export const getIPTVChannels = async () => {
 
                 currentChannel = { name, logo, group };
             } else if (line.startsWith('http') || line.startsWith('/stream')) {
-                // IMPORTANT: Use the URL from the proxy.
-                // If the proxy rewrote it to a relative path, prefix it with PROXY_URL.
-                currentChannel.url = line.startsWith('/') ? `${PROXY_URL}${line}` : line;
+                // IMPORTANT: Use the VM URL for streams to bypass Vercel's 10s timeout.
+                currentChannel.url = line.startsWith('/') ? `${STREAM_PROXY_URL}${line}` : line;
 
                 const nameUpper = currentChannel.name?.toUpperCase() || '';
                 const groupUpper = currentChannel.group?.toUpperCase() || '';
