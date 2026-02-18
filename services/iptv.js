@@ -101,7 +101,7 @@ export const getIPTVChannels = async () => {
                 const groupUpper = currentChannel.group?.toUpperCase() || '';
 
                 // 1. Identify French Content
-                const isFrench = nameUpper.includes('FR:') || nameUpper.includes('FRANCE') || groupUpper.includes('FRANCE') || groupUpper.includes('FR |') || groupUpper.includes('FRENCH') || groupUpper.includes('FRANÇAIS');
+                const isFrench = nameUpper.includes('FR:') || nameUpper.includes('FR |') || nameUpper.includes('FRANCE') || groupUpper.includes('FRANCE') || groupUpper.includes('FR |') || groupUpper.includes('FRENCH') || groupUpper.includes('FRANÇAIS');
 
                 // 2. Identify Sports Content (Generic)
                 const isSportGeneric = nameUpper.includes('SPORT') || groupUpper.includes('SPORT') || nameUpper.includes('FOOT') || nameUpper.includes('SOCCER') || nameUpper.includes('RUGBY') || nameUpper.includes('TENNIS') || nameUpper.includes('BASKET') || nameUpper.includes('MOTO') || nameUpper.includes('AUTO') || nameUpper.includes('FIGHT') || nameUpper.includes('UFC') || nameUpper.includes('WWE');
