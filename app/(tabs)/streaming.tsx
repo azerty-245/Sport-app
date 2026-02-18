@@ -276,9 +276,9 @@ export default function StreamingScreen() {
                   enableWorker: true,
                   liveBufferLatencyChasing: true, 
                   liveSync: true,                 
-                  liveSyncTarget: 6.0,             // 6 seconds cushion for deep smoothing
-                  liveBufferLatencyMaxLatency: 12.0, // Only jump if > 12s late
-                  liveBufferLatencyMinLatency: 4.0,  // Keep at least 4s of data
+                  liveSyncTarget: 10.0,            // 10 seconds cushion for extreme deep smoothing
+                  liveBufferLatencyMaxLatency: 20.0, // Only jump if > 20s late
+                  liveBufferLatencyMinLatency: 5.0,  // Keep at least 5s of data
                   enableStashBuffer: true,
                   stashInitialSize: 1024 * 1024, 
                   autoCleanupSourceBuffer: true,

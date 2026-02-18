@@ -3,11 +3,21 @@ const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const { spawn } = require('child_process');
-const app = express();
-const compression = require('compression');
-app.use(compression());
 const fs = require('fs');
 const path = require('path');
+
+const app = express();
+const compression = require('compression');
+
+// --- GLOBAL MIDDLEWARE ---
+app.use(compression());
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'X-API-Key', 'Range'],
+    exposedHeaders: ['Content-Length', 'Content-Range', 'Access-Control-Allow-Origin']
+}));
+app.options('*', cors()); // Enable pre-flight for all routes
 
 const PORT = 3005;
 
@@ -41,7 +51,7 @@ function updateTunnelUrl() {
 fs.watchFile(TUNNEL_URL_FILE, updateTunnelUrl);
 updateTunnelUrl();
 
-app.use(cors());
+// No need for redundant app.use(cors()) as it's now global above
 
 // Middleware to check API Key
 const validateApiKey = (req, res, next) => {
