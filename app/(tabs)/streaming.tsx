@@ -132,7 +132,12 @@ export default function StreamingScreen() {
         if (type === 'channel') {
             const rawUrl = item.url;
             // Force direct Oracle VM proxy for streaming to avoid Vercel timeouts
-            const finalUrl = rawUrl.includes('/api/iptv/stream') || rawUrl.includes(':3005/stream')
+            // Improved check: If it's already a stream proxy URL (direct or tunnel), use it as is.
+            const isAlreadyProxied = rawUrl.includes('/stream?') ||
+                rawUrl.includes(':3005/stream') ||
+                rawUrl.includes('trycloudflare.com');
+
+            const finalUrl = isAlreadyProxied
                 ? rawUrl
                 : `${STREAM_PROXY_URL}/stream?url=${encodeURIComponent(rawUrl)}&key=${API_KEY}`;
             targetStream = { title: 'Direct', url: finalUrl };
