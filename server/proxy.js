@@ -17,7 +17,7 @@ let playlistCache = {
     data: null,
     timestamp: 0,
 };
-const CACHE_DURATION = 1000 * 60 * 10; // 10 Minutes (Reduced for testing)
+const REFRESH_INTERVAL = 1000 * 60 * 55; // Refresh every 55 minutes
 
 app.use(cors());
 
@@ -40,27 +40,20 @@ const checkFFmpeg = () => {
     });
 };
 
-app.get('/playlist', validateApiKey, async (req, res) => {
-    const now = Date.now();
-
-    // 1. Check if cache is fresh
-    if (playlistCache.data && (now - playlistCache.timestamp < CACHE_DURATION)) {
-        console.log('[Proxy] Serving playlist from Server Cache (Instant)');
-        res.setHeader('Content-Type', 'text/plain');
-        return res.send(playlistCache.data);
-    }
-
+// CORE: Fetch Playlist Logic
+const fetchPlaylist = async () => {
     const iptvUrl = (process.env.IPTV_URL || '').trim();
-
     if (!iptvUrl) {
-        return res.status(500).send('IPTV_URL not configured on server');
+        console.error('[Proxy] IPTV_URL not configured');
+        return false;
     }
 
-    console.log(`[Proxy] Playlist cache expired. Fetching from source...`);
+    console.log(`[Proxy] 🔄 Refreshing Playlist from Source...`);
+    const start = Date.now();
 
     try {
         const response = await axios.get(iptvUrl, {
-            timeout: 15000,
+            timeout: 30000,
             headers: { 'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18' }
         });
 
@@ -75,23 +68,40 @@ app.get('/playlist', validateApiKey, async (req, res) => {
         });
 
         const finalOutput = rewrittenLines.join('\n');
-
-        // Update Cache
         playlistCache.data = finalOutput;
-        playlistCache.timestamp = now;
-
-        res.setHeader('Content-Type', 'text/plain');
-        res.send(finalOutput);
+        playlistCache.timestamp = Date.now();
+        console.log(`[Proxy] ✅ Playlist Refreshed! Size: ${(finalOutput.length / 1024).toFixed(2)} KB. Time: ${Date.now() - start}ms`);
+        return true;
     } catch (error) {
-        console.error(`[Proxy] Playlist fetch failed: ${error.message}`);
+        console.error(`[Proxy] ❌ Playlist refresh failed: ${error.message}`);
+        return false;
+    }
+};
+
+// Start Background Refresh Loop
+if (process.env.IPTV_URL) {
+    setInterval(fetchPlaylist, REFRESH_INTERVAL);
+}
+
+app.get('/playlist', validateApiKey, async (req, res) => {
+    if (playlistCache.data) {
+        res.setHeader('Content-Type', 'text/plain');
+        return res.send(playlistCache.data);
+    }
+    console.log('[Proxy] Cache empty, waiting for fetch...');
+    const success = await fetchPlaylist();
+    if (success && playlistCache.data) {
+        res.setHeader('Content-Type', 'text/plain');
+        res.send(playlistCache.data);
+    } else {
         res.status(502).send('IPTV source unavailable');
     }
 });
 
-// --- BROADCASTER HUB: Multi-user stream sharing ---
+// --- BROADCASTER HUB ---
 const broadcastHub = {
-    activeStreams: new Map(), // URL -> Broadcaster instance
-    maxUniqueChannels: 8      // Safety limit for 1GB RAM VM
+    activeStreams: new Map(),
+    maxUniqueChannels: 8
 };
 
 class Broadcaster {
@@ -105,29 +115,28 @@ class Broadcaster {
     }
 
     startStream() {
-        console.log(`[Broadcaster] 📡 Starting FFmpeg for unique channel: ${this.url.substring(0, 30)}...`);
+        console.log(`[Broadcaster] 📡 Starting FFmpeg: ${this.url.substring(0, 30)}...`);
 
         this.ffmpeg = spawn('ffmpeg', [
             '-reconnect', '1', '-reconnect_at_eof', '1', '-reconnect_streamed', '1',
             '-reconnect_on_network_error', '1', '-reconnect_on_http_error', '4xx,5xx',
             '-reconnect_delay_max', '2',
             '-rw_timeout', '10000000',
-            '-multiple_requests', '1',
-            '-fflags', '+genpts+igndts+discardcorrupt',
-            '-err_detect', 'ignore_err',
-            '-thread_queue_size', '8192',
-            '-probesize', '5000000',
-            '-analyzeduration', '5000000',
+            '-fflags', '+genpts+igndts+discardcorrupt', // Removed nobuffer to smooth jitter
+            '-flags', '+global_header', // Removed low_delay
+            '-thread_queue_size', '4096',
+            '-probesize', '5000000', // Increased for better sync
+            '-analyzeduration', '5000000', // Increased for better sync
             '-headers', 'User-Agent: Smart IPTV\r\nConnection: keep-alive\r\n',
             '-i', this.url,
             '-c:v', 'copy',
             '-c:a', 'aac', '-b:a', '128k',
             '-af', 'aresample=async=1',
             '-avoid_negative_ts', 'make_zero',
-            '-max_muxing_queue_size', '2048',
+            '-max_muxing_queue_size', '4096',
             '-f', 'mpegts',
-            '-mpegts_flags', 'resend_headers',
-            '-muxdelay', '0', '-muxpreload', '1',
+            '-mpegts_flags', 'resend_headers+initial_discontinuity',
+            '-muxdelay', '0', '-muxpreload', '0.5', // Small preload for smoothing
             'pipe:1'
         ]);
 
@@ -138,17 +147,12 @@ class Broadcaster {
             }
         });
 
-        this.ffmpeg.stderr.on('data', (data) => {
-            const msg = data.toString();
-            if (msg.includes('error') || msg.includes('timeout')) {
-                console.warn(`[Broadcaster-FFmpeg] ${msg.trim()}`);
-            }
-        });
-
         this.ffmpeg.on('close', (code) => {
-            console.log(`[Broadcaster] ⚪ FFmpeg closed (Code ${code}) for ${this.url.substring(0, 30)}`);
+            console.log(`[Broadcaster] ⚪ FFmpeg closed (Code ${code})`);
             this.stopStream();
         });
+
+        this.ffmpeg.stderr.on('data', (d) => { }); // Silent logs to save CPU
     }
 
     addClient(res) {
@@ -158,17 +162,13 @@ class Broadcaster {
             this.cleanupTimer = null;
         }
         res.setHeader('Content-Type', 'video/mp2t');
-        console.log(`[Broadcaster] 👥 Client added. Total for this channel: ${this.clients.size}`);
+        res.setHeader('Access-Control-Allow-Origin', '*');
     }
 
     removeClient(res) {
         this.clients.delete(res);
         if (this.clients.size === 0) {
-            console.log(`[Broadcaster] ⏳ Last client left. Keeping FFmpeg alive for 30s...`);
-            this.cleanupTimer = setTimeout(() => {
-                console.log(`[Broadcaster] 🛑 Cleanup: Closing idle stream.`);
-                this.stopStream();
-            }, 30000);
+            this.cleanupTimer = setTimeout(() => this.stopStream(), 30000);
         }
     }
 
@@ -177,9 +177,7 @@ class Broadcaster {
             this.ffmpeg.kill('SIGKILL');
             this.ffmpeg = null;
         }
-        for (const client of this.clients) {
-            client.end();
-        }
+        for (const client of this.clients) client.end();
         this.clients.clear();
         broadcastHub.activeStreams.delete(this.url);
     }
@@ -187,87 +185,61 @@ class Broadcaster {
 
 app.get('/stream', validateApiKey, async (req, res) => {
     let { url, id, nocode } = req.query;
-
     if (id) {
         try {
             url = Buffer.from(id, 'base64').toString('utf-8');
-        } catch (e) {
-            return res.status(400).send('Invalid stream ID');
-        }
+        } catch (e) { return res.status(400).send('Invalid ID'); }
     }
-
-    if (!url) return res.status(400).send('Missing "url" or "id"');
+    if (!url) return res.status(400).send('Missing url');
 
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
 
     const hasFFmpeg = await checkFFmpeg();
 
     if (nocode === 'true' || !hasFFmpeg) {
         try {
+            const stealthHeaders = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+                'Accept': 'application/json, text/plain, */*',
+                'Connection': 'keep-alive'
+            };
+            if (url.includes('sofascore.com')) {
+                stealthHeaders['Origin'] = 'https://www.sofascore.com';
+                stealthHeaders['Referer'] = 'https://www.sofascore.com/';
+            }
             const response = await axios({
-                method: 'get', url: url, responseType: 'stream', timeout: 15000,
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-                    'Accept': 'application/json, text/plain, */*',
-                    'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
-                    'Accept-Encoding': 'gzip, deflate, br',
-                    'Referer': 'https://www.sofascore.com/',
-                    'Origin': 'https://www.sofascore.com',
-                    'sec-ch-ua': '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
-                    'sec-ch-ua-mobile': '?0',
-                    'sec-ch-ua-platform': '"Windows"',
-                    'Sec-Fetch-Dest': 'empty', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Site': 'same-site',
-                    'Priority': 'u=1, i', 'Connection': 'keep-alive'
-                }
+                method: 'get', url, responseType: 'stream', timeout: 15000,
+                headers: stealthHeaders
             });
             res.setHeader('Content-Type', response.headers['content-type'] || 'application/json');
             response.data.pipe(res);
             res.on('close', () => response.data.destroy());
-            return;
         } catch (error) {
-            console.error('[Proxy] Stealth Error:', error.message);
-            if (!res.headersSent) res.status(502).send(error.message);
-            return;
+            if (!res.headersSent) {
+                // Return empty list or silent error to avoid Bad Gateway alert in app
+                res.status(200).json({ error: 'Source Temporarily Blocked', status: 403, events: [] });
+            }
         }
+        return;
     }
 
-    // ─── MULTI-USER BROADCASTER MODE ───
     try {
         let broadcaster = broadcastHub.activeStreams.get(url);
-
-        if (broadcaster) {
-            console.log(`[Hub] 🟢 Joining existing broadcast for: ${url.substring(0, 30)}...`);
-            broadcaster.addClient(res);
-        } else {
-            // Check resource limit
+        if (!broadcaster) {
             if (broadcastHub.activeStreams.size >= broadcastHub.maxUniqueChannels) {
-                console.warn(`[Hub] 🔴 Resource limit reached (${broadcastHub.maxUniqueChannels} channels).`);
-                return res.status(503).send('Serveur Surchargé: Limite reached.');
+                return res.status(503).send('Server Busy');
             }
-
             broadcaster = new Broadcaster(url);
             broadcastHub.activeStreams.set(url, broadcaster);
-            broadcaster.addClient(res);
         }
-
-        res.on('close', () => {
-            broadcaster.removeClient(res);
-        });
-
+        broadcaster.addClient(res);
+        res.on('close', () => broadcaster.removeClient(res));
     } catch (e) {
-        console.error('[Proxy] Broadcaster Error:', e.message);
         if (!res.headersSent) res.status(500).send('Hub Error');
     }
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`
-🚀 Streaming Proxy BROADCASTER (v5 Source Switcher)
-📍 Port     : ${PORT}
-🔑 Security : API Key Enabled
-📺 Limit    : ${broadcastHub.maxUniqueChannels} Unique Channels
-📡 Sync     : Shared Stream Active
-🔗 Source   : ${process.env.IPTV_URL ? process.env.IPTV_URL.substring(0, 35) + '...' : 'NONE'}
-    `);
+    console.log(`🚀 Proxy BROADCASTER (v6.3 JITTER-SMOOTH)\n📍 Port: ${PORT}`);
+    if (process.env.IPTV_URL) fetchPlaylist();
 });

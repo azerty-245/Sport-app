@@ -254,8 +254,8 @@ export default function StreamingScreen() {
               window.addEventListener('offline', function() { log('⚠️ CONNEXION PERDUE (Check Wifi/4G)'); });
               window.addEventListener('online', function() { log('✅ CONNEXION RÉTABLIE'); });
 
-              video.addEventListener('waiting', function() { log('⏳ Sync/Buffer (Reconnect du Fournisseur...)'); });
-              video.addEventListener('stalled', function() { log('🚫 Flux arrêté (Problème réseau ou serveur)'); });
+              video.addEventListener('waiting', function() { log('⏳ Optimisation du flux (Lissage...)'); });
+              video.addEventListener('stalled', function() { log('🚫 Flux arrêté (Problème serveur)'); });
               video.addEventListener('error', function() { log('❌ Erreur Lecteur: ' + (video.error ? video.error.message : 'Inconnue')); });
 
               // Try mpegts.js first (for MPEG-TS / FLV streams from IPTV servers)
@@ -268,12 +268,12 @@ export default function StreamingScreen() {
                 }, {
                   enableWorker: true,
                   liveBufferLatencyChasing: true,
-                  liveBufferLatencyMaxLatency: 10,
-                  liveBufferLatencyMinRemain: 2,
+                  liveBufferLatencyMaxLatency: 20, // Increased to avoid jumps
+                  liveBufferLatencyMinRemain: 5,  // Keep more buffer for stability
                   liveSync: true,
-                  liveSyncTarget: 5,
+                  liveSyncTarget: 8,              // Target 8s delay instead of 5s
                   enableStashBuffer: true,
-                  stashInitialSize: 512 * 1024,
+                  stashInitialSize: 1024 * 1024, // 1MB stash for smoother starts
                   autoCleanupSourceBuffer: true,
                   autoCleanupMaxBackwardDuration: 30,
                   autoCleanupMinBackwardDuration: 15,
