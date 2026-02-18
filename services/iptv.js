@@ -6,19 +6,19 @@ const CACHE_DURATION = 1000 * 60 * 60 * 12; // 12 hours
 
 // Expo inlines EXPO_PUBLIC_* at build time
 // On Web, checking window.location.origin is safer for Workers which need absolute URLs
+// IPTV streaming requires a persistent connection (MPEG-TS). 
+// Vercel Serverless (eben-digi.vercel.app) has a 10s execution limit, which causes "loops" and disconnects.
+// We MUST use the persistent Oracle VM for streaming.
 const getProxyUrl = () => {
-    if (Platform.OS === 'web') {
-        const isStandardWeb = typeof window !== 'undefined' &&
-            window.location &&
-            (window.location.protocol === 'http:' || window.location.protocol === 'https:');
+    const VM_URL = 'http://152.70.45.91:3005';
 
-        if (isStandardWeb) {
-            return `${window.location.origin}/api/iptv`;
-        }
-        // For Electron (app:// protocol) or local files, use the absolute Oracle Proxy URL
-        return process.env.EXPO_PUBLIC_PROXY_URL || 'http://152.70.45.91:3005';
+    // If we have an explicit override, use it
+    if (process.env.EXPO_PUBLIC_PROXY_URL) {
+        return process.env.EXPO_PUBLIC_PROXY_URL;
     }
-    return process.env.EXPO_PUBLIC_PROXY_URL || 'http://152.70.45.91:3005';
+
+    // Default to Oracle VM for stability
+    return VM_URL;
 };
 
 export const PROXY_URL = getProxyUrl();
