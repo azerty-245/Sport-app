@@ -4,6 +4,9 @@ const axios = require('axios');
 const cors = require('cors');
 const { spawn } = require('child_process');
 const app = express();
+const compression = require('compression');
+app.use(compression());
+
 const PORT = 3005;
 
 // SECURITY: Define your API Key (Must match EXPO_PUBLIC_API_KEY in the app)
