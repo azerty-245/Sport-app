@@ -183,7 +183,7 @@ class Broadcaster {
 
         // --- LOOP PROTECTION ---
         if (this.url.includes('trycloudflare.com') || this.url.includes('localhost') || this.url.includes('127.0.0.1')) {
-            console.error(`[Broadcaster] 🛑 LOOP DETECTED: Refusing to proxy self (${this.url.substring(0, 40)}...)`);
+            console.error(`[Broadcaster] 🛑 LOOP DETECTED (${new Date().toLocaleTimeString()}): Refusing to proxy self (${this.url.substring(0, 40)}...)`);
             this.status = 'error';
             return;
         }
