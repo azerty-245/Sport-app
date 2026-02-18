@@ -57,26 +57,25 @@ export default function StreamingScreen() {
 
     const fetchData = useCallback(async () => {
         try {
+            console.log('[DEBUG] fetchData starting...');
             const [matchesData, channelsData, highlightsData, liveScoresData, myIPTVData] = await Promise.all([
-                getAllStreaming(),
-                getStreamingChannels(),
-                fetchScoreBatHighlights(),
-                fetchAllLiveScores(),
-                getIPTVChannels()
+                getAllStreaming().catch(e => { console.warn('Matches API failed', e); return null; }),
+                getStreamingChannels().catch(e => { console.warn('Channels API failed', e); return null; }),
+                fetchScoreBatHighlights().catch(e => { console.warn('Highlights API failed', e); return null; }),
+                fetchAllLiveScores().catch(e => { console.warn('LiveScores API failed', e); return null; }),
+                getIPTVChannels().catch(e => { console.warn('IPTV API failed', e); return null; })
             ]);
 
-            // Process Matches (PrinceTech streams)
-            const matchesRaw = (matchesData && typeof matchesData === 'object' && 'matches' in matchesData)
-                ? (matchesData.matches || [])
+            // Robust data processing - Always falling back to empty arrays
+            const matchesRaw = (matchesData && typeof matchesData === 'object' && 'matches' in (matchesData as any))
+                ? ((matchesData as any).matches || [])
                 : (Array.isArray(matchesData) ? matchesData : []);
             setMatches(Array.isArray(matchesRaw) ? matchesRaw : []);
 
-            // Process Live Scores (SofaScore + OpenLigaDB)
             setLiveScores(Array.isArray(liveScoresData) ? liveScoresData : []);
 
-            // Process Channels - Use our verified premium IPTV + API channels
-            const channelsRaw = (channelsData && typeof channelsData === 'object' && 'channels' in channelsData)
-                ? (channelsData.channels || [])
+            const channelsRaw = (channelsData && typeof channelsData === 'object' && 'channels' in (channelsData as any))
+                ? ((channelsData as any).channels || [])
                 : (Array.isArray(channelsData) ? channelsData : []);
 
             const sanitizedAPIChannels = Array.isArray(channelsRaw)
@@ -86,14 +85,13 @@ export default function StreamingScreen() {
                 }))
                 : [];
 
-            // Our verified IPTV channels first, then API channels
             const allChannels = [...(Array.isArray(myIPTVData) ? myIPTVData : []), ...sanitizedAPIChannels];
             setChannels(allChannels);
 
-            // Process Highlights
             setHighlights(Array.isArray(highlightsData) ? highlightsData : []);
+            console.log(`[DEBUG] fetchData complete. Channels: ${allChannels.length}, Matches: ${matchesRaw.length}`);
         } catch (err) {
-            console.error('Error fetching streams:', err);
+            console.error('CRITICAL Error in fetchData:', err);
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -583,7 +581,7 @@ export default function StreamingScreen() {
             </View>
 
             {/* Tab content */}
-            {isMounted ? renderTabContent() : <View style={{ flex: 1 }} />}
+            {isMounted ? renderTabContent() : <View style={{ flex: 1, backgroundColor: colors.background }} />}
 
             {/* Scroll Shortcuts */}
             <View style={styles.scrollShortcuts}>
