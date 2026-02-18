@@ -6,24 +6,25 @@ const CACHE_DURATION = 1000 * 60 * 60 * 12; // 12 hours
 
 // Expo inlines EXPO_PUBLIC_* at build time
 // On Web, checking window.location.origin is safer for Workers which need absolute URLs
-// IPTV streaming requires a persistent connection (MPEG-TS). 
-// Vercel Serverless (eben-digi.vercel.app) has a 10s execution limit, which causes "loops" and disconnects.
-// We MUST use the persistent Oracle VM for streaming.
-const getProxyUrl = () => {
-    const VM_URL = 'http://152.70.45.91:3005';
-
-    // If we have an explicit override, use it
-    if (process.env.EXPO_PUBLIC_PROXY_URL) {
-        return process.env.EXPO_PUBLIC_PROXY_URL;
+// Split Proxy Strategy:
+// 1. METADATA_PROXY: Use HTTPS (Vercel) to avoid "Mixed Content" blocks on the UI.
+// 2. STREAM_PROXY: Use direct IP (Oracle) for persistent MPEG-TS streaming (avoid Vercel 10s timeout).
+const getMetadataProxy = () => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        // If on Vercel, use the absolute Vercel API path to ensure HTTPS
+        if (window.location.hostname.includes('vercel.app')) {
+            return `https://${window.location.hostname}/api/iptv`;
+        }
+        return `${window.location.origin}/api/iptv`;
     }
-
-    // Default to Oracle VM for stability
-    return VM_URL;
+    return process.env.EXPO_PUBLIC_PROXY_URL || 'http://152.70.45.91:3005';
 };
 
-export const PROXY_URL = getProxyUrl();
+export const PROXY_URL = getMetadataProxy();
+export const STREAM_PROXY_URL = process.env.EXPO_PUBLIC_PROXY_URL || 'http://152.70.45.91:3005';
 
-console.log('[IPTV] Initialized with Proxy URL:', PROXY_URL); // DEBUG
+console.log('[IPTV] Initialized with Metadata Proxy (HTTPS):', PROXY_URL);
+console.log('[IPTV] Initialized with Stream Proxy (HTTP/VM):', STREAM_PROXY_URL);
 
 const IPTV_URL = process.env.EXPO_PUBLIC_IPTV_URL || '';
 export const API_KEY = process.env.EXPO_PUBLIC_API_KEY || 'sport-zone-secure-v1';

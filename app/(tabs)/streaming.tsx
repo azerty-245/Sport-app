@@ -10,7 +10,7 @@ import { borderRadius, colors, fontSize, shadows, spacing } from '../../constant
 import { getAllStreaming, getStreamingChannels } from '../../services/api';
 import { fetchScoreBatHighlights } from '../../services/externalStreams';
 import { fetchAllLiveScores } from '../../services/footballAPIs';
-import { API_KEY, getIPTVChannels, PROXY_URL } from '../../services/iptv';
+import { API_KEY, getIPTVChannels, STREAM_PROXY_URL } from '../../services/iptv';
 
 type TabKey = 'channels' | 'highlights';
 
@@ -35,7 +35,9 @@ function fuzzyMatch(target: string, query: string): boolean {
 
 export default function StreamingScreen() {
     const [isMounted, setIsMounted] = useState(false);
-    useEffect(() => { setIsMounted(true); }, []);
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     const [activeTab, setActiveTab] = useState<TabKey>('channels');
     const [matches, setMatches] = useState<any[]>([]);
@@ -129,10 +131,10 @@ export default function StreamingScreen() {
         let targetStream;
         if (type === 'channel') {
             const rawUrl = item.url;
-            // Force proxy even for API channels if not already proxied
+            // Force direct Oracle VM proxy for streaming to avoid Vercel timeouts
             const finalUrl = rawUrl.includes('/api/iptv/stream') || rawUrl.includes(':3005/stream')
                 ? rawUrl
-                : `${PROXY_URL}/stream?url=${encodeURIComponent(rawUrl)}&key=${API_KEY}`;
+                : `${STREAM_PROXY_URL}/stream?url=${encodeURIComponent(rawUrl)}&key=${API_KEY}`;
             targetStream = { title: 'Direct', url: finalUrl };
         } else {
             targetStream = item.streams?.[activeStreamIndex] || item.streams?.[0];
@@ -539,15 +541,7 @@ export default function StreamingScreen() {
         }
     };
 
-    // Prevent hydration mismatch by not rendering the full UI until mounted
-    if (!isMounted) {
-        return (
-            <View style={styles.container}>
-                <MatchSkeleton />
-            </View>
-        );
-    }
-
+    // Standard rendering with stability for hydration
     return (
         <View style={styles.container}>
             {/* Tab bar */}
