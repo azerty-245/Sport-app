@@ -18,7 +18,8 @@ let playlistCache = {
     timestamp: 0,
     configHash: null
 };
-const REFRESH_INTERVAL = 1000 * 60 * 10; // Refresh more frequently (10 minutes)
+const REFRESH_INTERVAL = 1000 * 60 * 60 * 24 * 7; // Persistent cache for 7 days
+const SOFT_REFRESH_INTERVAL = 1000 * 60 * 60 * 24; // Check source health every 24 hours
 const MAX_UNIQUE_CHANNELS = 5; // Reduced to 5 to save RAM on 1GB VM
 
 app.use(cors());
@@ -115,14 +116,18 @@ app.get('/playlist', validateApiKey, async (req, res) => {
     }
 
     const configChanged = playlistCache.configHash !== currentHash;
+    const isStale = Date.now() - playlistCache.timestamp > REFRESH_INTERVAL;
+    const needsSoftCheck = Date.now() - playlistCache.timestamp > SOFT_REFRESH_INTERVAL;
 
-    if (playlistCache.data && !forceRefresh && !configChanged && (Date.now() - playlistCache.timestamp < REFRESH_INTERVAL)) {
+    // Return cache if it's not totally expired, config hasn't changed, and we don't need a health check
+    if (playlistCache.data && !forceRefresh && !configChanged && !isStale && !needsSoftCheck) {
         res.setHeader('Content-Type', 'text/plain');
         return res.send(playlistCache.data);
     }
 
     if (forceRefresh) console.log('[Proxy] 🔄 Manual refresh requested...');
     if (configChanged) console.log('[Proxy] ⚙️ Config change detected in .env, updating cache...');
+    if (needsSoftCheck && !isStale) console.log('[Proxy] 🕒 24h health check triggered, validating source...');
 
     const success = await fetchPlaylist();
     if (success && playlistCache.data) {
