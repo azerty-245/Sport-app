@@ -42,40 +42,47 @@ const checkFFmpeg = () => {
 
 // CORE: Fetch Playlist Logic
 const fetchPlaylist = async () => {
-    const iptvUrl = (process.env.IPTV_URL || '').trim();
-    if (!iptvUrl) {
-        console.error('[Proxy] IPTV_URL not configured');
+    const iptvUrls = (process.env.IPTV_URL || '').split(',').map(u => u.trim()).filter(u => u);
+    if (iptvUrls.length === 0) {
+        console.error('[Proxy] No IPTV_URL configured');
         return false;
     }
 
-    console.log(`[Proxy] 🔄 Refreshing Playlist from Source...`);
+    console.log(`[Proxy] 🔄 Refreshing Playlist (Fallback Mode Active: ${iptvUrls.length} sources)...`);
     const start = Date.now();
 
-    try {
-        const response = await axios.get(iptvUrl, {
-            timeout: 30000,
-            headers: { 'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18' }
-        });
+    for (let i = 0; i < iptvUrls.length; i++) {
+        const url = iptvUrls[i];
+        try {
+            console.log(`[Proxy]  Trying source ${i + 1}: ${url.substring(0, 40)}...`);
+            const response = await axios.get(url, {
+                timeout: 20000,
+                headers: { 'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18' }
+            });
 
-        const lines = response.data.split('\n');
-        const rewrittenLines = lines.map(line => {
-            const trimmed = line.trim();
-            if (trimmed.startsWith('http')) {
-                const encodedUrl = Buffer.from(trimmed).toString('base64');
-                return `/stream?id=${encodedUrl}&key=${API_KEY}`;
-            }
-            return line;
-        });
+            const lines = response.data.split('\n');
+            const rewrittenLines = lines.map(line => {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('http')) {
+                    const encodedUrl = Buffer.from(trimmed).toString('base64');
+                    return `/stream?id=${encodedUrl}&key=${API_KEY}`;
+                }
+                return line;
+            });
 
-        const finalOutput = rewrittenLines.join('\n');
-        playlistCache.data = finalOutput;
-        playlistCache.timestamp = Date.now();
-        console.log(`[Proxy] ✅ Playlist Refreshed! Size: ${(finalOutput.length / 1024).toFixed(2)} KB. Time: ${Date.now() - start}ms`);
-        return true;
-    } catch (error) {
-        console.error(`[Proxy] ❌ Playlist refresh failed: ${error.message}`);
-        return false;
+            const finalOutput = rewrittenLines.join('\n');
+            playlistCache.data = finalOutput;
+            playlistCache.timestamp = Date.now();
+            console.log(`[Proxy] ✅ Success with source ${i + 1}! Size: ${(finalOutput.length / 1024).toFixed(2)} KB. Time: ${Date.now() - start}ms`);
+            return true;
+        } catch (error) {
+            console.error(`[Proxy] ⚠️ Source ${i + 1} failed: ${error.message}`);
+            // Continue to next source
+        }
     }
+
+    console.error(`[Proxy] ❌ All ${iptvUrls.length} sources failed.`);
+    return false;
 };
 
 // Start Background Refresh Loop
