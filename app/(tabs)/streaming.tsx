@@ -66,25 +66,32 @@ export default function StreamingScreen() {
             ]);
 
             // Process Matches (PrinceTech streams)
-            const matchesRaw = (matchesData && matchesData.matches) || (Array.isArray(matchesData) ? matchesData : []) || [];
-            setMatches(matchesRaw);
+            const matchesRaw = (matchesData && typeof matchesData === 'object' && 'matches' in matchesData)
+                ? (matchesData.matches || [])
+                : (Array.isArray(matchesData) ? matchesData : []);
+            setMatches(Array.isArray(matchesRaw) ? matchesRaw : []);
 
             // Process Live Scores (SofaScore + OpenLigaDB)
-            setLiveScores(liveScoresData || []);
+            setLiveScores(Array.isArray(liveScoresData) ? liveScoresData : []);
 
             // Process Channels - Use our verified premium IPTV + API channels
-            const channelsRaw = (channelsData && channelsData.channels) || (Array.isArray(channelsData) ? channelsData : []) || [];
-            const sanitizedAPIChannels = channelsRaw.map((c: any) => ({
-                ...c,
-                name: c.name || c.title || c.channel_name || 'Live Channel'
-            }));
+            const channelsRaw = (channelsData && typeof channelsData === 'object' && 'channels' in channelsData)
+                ? (channelsData.channels || [])
+                : (Array.isArray(channelsData) ? channelsData : []);
+
+            const sanitizedAPIChannels = Array.isArray(channelsRaw)
+                ? channelsRaw.map((c: any) => ({
+                    ...c,
+                    name: c?.name || c?.title || c?.channel_name || 'Live Channel'
+                }))
+                : [];
 
             // Our verified IPTV channels first, then API channels
-            const allChannels = [...(myIPTVData || []), ...sanitizedAPIChannels];
+            const allChannels = [...(Array.isArray(myIPTVData) ? myIPTVData : []), ...sanitizedAPIChannels];
             setChannels(allChannels);
 
             // Process Highlights
-            setHighlights(highlightsData || []);
+            setHighlights(Array.isArray(highlightsData) ? highlightsData : []);
         } catch (err) {
             console.error('Error fetching streams:', err);
         } finally {
@@ -576,7 +583,7 @@ export default function StreamingScreen() {
             </View>
 
             {/* Tab content */}
-            {renderTabContent()}
+            {isMounted ? renderTabContent() : <View style={{ flex: 1 }} />}
 
             {/* Scroll Shortcuts */}
             <View style={styles.scrollShortcuts}>

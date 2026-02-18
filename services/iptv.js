@@ -11,34 +11,46 @@ const CACHE_DURATION = 1000 * 60 * 60 * 12; // 12 hours
 // 2. STREAM_PROXY: Use direct IP (Oracle) for persistent MPEG-TS streaming (avoid Vercel 10s timeout).
 const getMetadataProxy = () => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        // If on Vercel, use the absolute Vercel API path to ensure HTTPS
-        if (window.location.hostname.includes('vercel.app')) {
-            return `https://${window.location.hostname}/api/iptv`;
+        const host = window.location.hostname;
+        if (host.includes('vercel.app')) {
+            return `https://${host}/api/iptv`;
         }
         return `${window.location.origin}/api/iptv`;
     }
+    // Default to the original VM IP as fallback/primary
     return process.env.EXPO_PUBLIC_PROXY_URL || 'http://152.70.45.91:3005';
 };
 
+// Use a function to get the current PROXY_URL to avoid stale top-level constants
 export let PROXY_URL = getMetadataProxy();
 export let STREAM_PROXY_URL = process.env.EXPO_PUBLIC_PROXY_URL || 'http://152.70.45.91:3005';
 
 // Dynamic Tunnel Discovery:
-// Fetch the current secure tunnel URL from the VM once at startup.
-const discoverTunnel = async () => {
+// Fetch the current secure tunnel URL from the VM.
+// Now handles potential initialization delays.
+export const discoverTunnel = async () => {
     try {
         console.log('[IPTV] Discovering secure tunnel...');
-        const response = await fetch(`${PROXY_URL}/tunnel-info`);
+        // We use the direct PROXY_URL (Vercel) to reach the VM
+        const response = await fetch(`${getMetadataProxy()}/tunnel-info`);
+        if (!response.ok) throw new Error('Tunnel info unavailable');
+
         const data = await response.json();
         if (data.tunnelUrl) {
             STREAM_PROXY_URL = data.tunnelUrl;
             console.log('[IPTV] 🛡️ Secure Tunnel URL discovered:', STREAM_PROXY_URL);
+            return STREAM_PROXY_URL;
         }
     } catch (e) {
-        console.warn('[IPTV] Tunnel discovery failed, falling back to IP:', STREAM_PROXY_URL);
+        console.warn('[IPTV] Tunnel discovery failed, using fallback:', STREAM_PROXY_URL);
+        return STREAM_PROXY_URL;
     }
 };
-discoverTunnel();
+
+// Initial discovery (if in browser)
+if (typeof window !== 'undefined') {
+    discoverTunnel();
+}
 
 console.log('[IPTV] Initialized with Metadata Proxy (HTTPS):', PROXY_URL);
 
