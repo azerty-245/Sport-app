@@ -267,15 +267,16 @@ export default function StreamingScreen() {
                   url: src
                 }, {
                   enableWorker: true,
-                  liveBufferLatencyChasing: false, // Force stable playback without jumps
-                  liveSync: false,                 // Disable sync to prevent skipping frames
+                  liveBufferLatencyChasing: false, 
+                  liveSync: true,                 
+                  liveSyncTarget: 10,             
                   enableStashBuffer: true,
-                  stashInitialSize: 2 * 1024 * 1024, // 2MB buffer for high stability
+                  stashInitialSize: 3 * 1024 * 1024, 
                   autoCleanupSourceBuffer: true,
-                  autoCleanupMaxBackwardDuration: 30,
-                  autoCleanupMinBackwardDuration: 15,
+                  autoCleanupMaxBackwardDuration: 100,
+                  autoCleanupMinBackwardDuration: 30,
                   fixAudioTimestampGap: true,
-                  lazyLoadMaxDuration: 60,
+                  lazyLoadMaxDuration: 100,
                 });
                 player.attachMediaElement(video);
                 player.load();

@@ -157,21 +157,22 @@ class Broadcaster {
             '-reconnect_on_network_error', '1', '-reconnect_on_http_error', '4xx,5xx',
             '-reconnect_delay_max', '2',
             '-rw_timeout', '10000000',
-            '-fflags', '+genpts+igndts+discardcorrupt', // Removed nobuffer to smooth jitter
-            '-flags', '+global_header', // Removed low_delay
-            '-thread_queue_size', '4096',
-            '-probesize', '5000000', // Increased for better sync
-            '-analyzeduration', '5000000', // Increased for better sync
+            '-fflags', '+genpts+igndts+discardcorrupt+flush_packets',
+            '-correct_ts_overflow', '1',
+            '-flags', '+global_header',
+            '-thread_queue_size', '8192',
+            '-probesize', '10000000',
+            '-analyzeduration', '10000000',
             '-headers', 'User-Agent: Smart IPTV\r\nConnection: keep-alive\r\n',
             '-i', this.url,
             '-c:v', 'copy',
             '-c:a', 'aac', '-b:a', '128k',
             '-af', 'aresample=async=1',
             '-avoid_negative_ts', 'make_zero',
-            '-max_muxing_queue_size', '4096',
+            '-max_muxing_queue_size', '8192',
             '-f', 'mpegts',
             '-mpegts_flags', 'resend_headers+initial_discontinuity',
-            '-muxdelay', '0', '-muxpreload', '0.5', // Small preload for smoothing
+            '-muxdelay', '0.1', '-muxpreload', '1.0',
             'pipe:1'
         ]);
 
