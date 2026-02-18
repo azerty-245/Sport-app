@@ -179,6 +179,8 @@ class Broadcaster {
     }
 
     startStream() {
+        if (this.status === 'reconnecting') return;
+
         console.log(`[Broadcaster] 📡 Starting FFmpeg: ${this.url.substring(0, 30)}...`);
 
         this.ffmpeg = spawn('ffmpeg', [
@@ -186,38 +188,50 @@ class Broadcaster {
             '-reconnect_on_network_error', '1', '-reconnect_on_http_error', '4xx,5xx',
             '-reconnect_delay_max', '2',
             '-rw_timeout', '10000000',
-            '-fflags', '+genpts+igndts+discardcorrupt+flush_packets',
-            '-correct_ts_overflow', '1',
-            '-flags', '+global_header',
-            '-thread_queue_size', '8192',
-            '-probesize', '10000000',
-            '-analyzeduration', '10000000',
+            '-fflags', '+genpts+igndts+discardcorrupt+flush_packets+nobuffer',
+            '-flags', '+low_delay+global_header',
+            '-max_delay', '500000',
+            '-probesize', '5000000',
+            '-analyzeduration', '5000000',
             '-headers', 'User-Agent: Smart IPTV\r\nConnection: keep-alive\r\n',
             '-i', this.url,
             '-c:v', 'copy',
             '-c:a', 'aac', '-b:a', '128k',
             '-af', 'aresample=async=1',
-            '-avoid_negative_ts', 'make_zero',
-            '-max_muxing_queue_size', '8192',
+            '-max_muxing_queue_size', '4096',
+            '-bufsize', '2M',
             '-f', 'mpegts',
             '-mpegts_flags', 'resend_headers+initial_discontinuity',
-            '-muxdelay', '0.1', '-muxpreload', '1.0',
+            '-muxdelay', '0.001',
             'pipe:1'
         ]);
 
         this.ffmpeg.stdout.on('data', (chunk) => {
+            if (this.status !== 'streaming') {
+                console.log(`[Broadcaster] ✅ Stream flowing for ${this.url.substring(0, 20)}...`);
+            }
             this.status = 'streaming';
             for (const client of this.clients) {
-                client.write(chunk);
+                try {
+                    client.write(chunk);
+                } catch (e) {
+                    this.clients.delete(client);
+                }
             }
         });
 
         this.ffmpeg.on('close', (code) => {
-            console.log(`[Broadcaster] ⚪ FFmpeg closed (Code ${code})`);
-            this.stopStream();
+            console.log(`[Broadcaster] ⚠️ FFmpeg closed (Code ${code}). Attempting silent reconnect...`);
+            this.ffmpeg = null;
+            if (this.clients.size > 0) {
+                this.status = 'reconnecting';
+                setTimeout(() => this.startStream(), 2000);
+            } else {
+                this.stopStream();
+            }
         });
 
-        this.ffmpeg.stderr.on('data', (d) => { }); // Silent logs to save CPU
+        this.ffmpeg.getStderr = () => { }; // Prevent mem leak
     }
 
     addClient(res) {
@@ -228,6 +242,10 @@ class Broadcaster {
         }
         res.setHeader('Content-Type', 'video/mp2t');
         res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.setHeader('Connection', 'keep-alive');
     }
 
     removeClient(res) {
