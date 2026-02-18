@@ -46,14 +46,14 @@ export default function Root({ children }: { children: React.ReactNode }) {
                     __html: `
                         setTimeout(function() {
                             // 1. Vignette
-                            (function(s){s.dataset.zone='10617888',s.src='https://gizokraijaw.net/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')));
+                            (function(s){s.dataset.zone='10626370',s.src='https://gizokraijaw.net/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')));
                             
                             // 2. In-Page Push
-                            (function(s){s.dataset.zone='10617908',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')));
+                            (function(s){s.dataset.zone='10626367',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')));
                             
                             // 3. Direct Link Popunder Ruse
                             (function() {
-                                const directLink = 'https://omg10.com/4/10617912';
+                                const directLink = 'https://omg10.com/4/10626366';
                                 const handleFirstClick = function() {
                                     window.open(directLink, '_blank');
                                     document.removeEventListener('click', handleFirstClick);
