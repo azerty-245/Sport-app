@@ -54,11 +54,12 @@ module.exports = async (req, res) => {
     // Intelligent routing: Choose the best viable VM path
     const baseUrl = getBaseUrl(req);
 
-    // Extract the sub-path: /api/iptv/playlist -> /playlist
-    const subPath = req.url.replace(/^\/?api\/iptv/, '') || '/';
-    const targetUrl = `${baseUrl}${subPath}`;
+    // Extract ONLY the path without query: /api/iptv/playlist?key=... -> /playlist
+    // We handle the query params via axios.params
+    const cleanPath = req.url.split('?')[0].replace(/^\/?api\/iptv/, '') || '/';
+    const targetUrl = `${baseUrl}${cleanPath}`;
 
-    console.log(`[Vercel Proxy] Routing: ${subPath} -> ${targetUrl} (via ${req.headers['x-vm-tunnel'] ? 'Header' : 'Default'})`);
+    console.log(`[Vercel Proxy] Routing: ${cleanPath} -> ${targetUrl} (via ${req.headers['x-vm-tunnel'] ? 'Header' : 'Default'})`);
     const start = Date.now();
 
     // Forward API key
@@ -79,9 +80,11 @@ module.exports = async (req, res) => {
             validateStatus: () => true, // Don't throw on 4xx/5xx
         });
 
-        console.log(`[Vercel Proxy] ✅ Success: ${subPath} (${response.status}) in ${Date.now() - start}ms`);
+        console.log(`[Vercel Proxy] ✅ Success: ${cleanPath} (${response.status}) in ${Date.now() - start}ms - Size: ${response.data.byteLength} bytes`);
 
         // Forward response headers
+        res.setHeader('X-Proxy-Target', targetUrl);
+        res.setHeader('X-Proxy-Size', response.data.byteLength);
         res.status(response.status);
         if (response.headers['content-type']) {
             res.setHeader('Content-Type', response.headers['content-type']);
