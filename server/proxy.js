@@ -28,6 +28,7 @@ let playlistCache = {
     timestamp: 0,
     configHash: null
 };
+let pendingFetch = null; // Prevents duplicate concurrent fetches
 
 const REFRESH_INTERVAL = 1000 * 60 * 15; // 15 minutes
 const SOFT_REFRESH_INTERVAL = 1000 * 60 * 5; // 5 minutes soft check
@@ -71,6 +72,12 @@ const checkFFmpeg = () => {
 
 // CORE: Fetch Playlist Logic
 const fetchPlaylist = async () => {
+    if (pendingFetch) return pendingFetch; // Don't start duplicate fetch
+    pendingFetch = _doFetchPlaylist().finally(() => { pendingFetch = null; });
+    return pendingFetch;
+};
+
+const _doFetchPlaylist = async () => {
     const iptvUrls = (process.env.IPTV_URL || '').split(',').map(u => u.trim()).filter(u => u);
     if (iptvUrls.length === 0) {
         console.error('[Proxy] No IPTV_URL configured');
@@ -159,12 +166,22 @@ app.get('/playlist', validateApiKey, async (req, res) => {
         if (isStale) fetchPlaylist();
     } else {
         if (configChanged) process.env.IPTV_URL = currentIPTVUrl;
-        const success = await fetchPlaylist();
-        if (success) {
-            res.setHeader('Content-Type', 'text/plain');
-            res.send(playlistCache.data);
-        } else {
-            res.status(502).send('IPTV source unavailable');
+        // Wait max 8s for the fetch (Vercel times out at 10s)
+        try {
+            const success = await Promise.race([
+                fetchPlaylist(),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
+            ]);
+            if (success && playlistCache.data) {
+                res.setHeader('Content-Type', 'text/plain');
+                res.send(playlistCache.data);
+            } else {
+                res.status(502).send('IPTV source unavailable');
+            }
+        } catch (e) {
+            // If cold-start fetch takes >8s, return 503 so Vercel returns cleanly
+            console.warn('[Proxy] ⏱️ Playlist fetch timeout - IPTV source slow');
+            res.status(503).send('Warming up - try again in 10s');
         }
     }
 });
@@ -233,7 +250,7 @@ app.get('/stream', validateApiKey, async (req, res) => {
 
     if (nocode === 'true') {
         try {
-            const response = await axios({ method: 'get', url, responseType: 'stream', timeout: 15000 });
+            const response = await axios({ method: 'get', url, responseType: 'stream', timeout: 5000 });
             response.data.pipe(res);
         } catch (e) { res.status(502).send('Error'); }
         return;
