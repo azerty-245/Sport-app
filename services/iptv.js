@@ -26,12 +26,17 @@ export let PROXY_URL = getMetadataProxy();
 export let STREAM_PROXY_URL = process.env.EXPO_PUBLIC_PROXY_URL || 'http://152.70.45.91:3005';
 
 // Dynamic Tunnel Discovery:
-// Fetch the current secure tunnel URL from the VM.
+// Fetch the current secure tunnel URL directly from the VM tunnel endpoint.
+// We call Vercel's /api/iptv/tunnel-info which proxies to the VM.
 export const discoverTunnel = async () => {
     try {
         console.log('[IPTV] Discovering secure tunnel...');
         const metadataProxy = getMetadataProxy();
-        const response = await fetch(`${metadataProxy}/tunnel-info`);
+        // Use a short timeout so we don't block the app if the VM is slow
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const response = await fetch(`${metadataProxy}/tunnel-info`, { signal: controller.signal });
+        clearTimeout(timeoutId);
         if (!response.ok) throw new Error('Tunnel info unavailable');
 
         const data = await response.json();
@@ -41,11 +46,11 @@ export const discoverTunnel = async () => {
             return STREAM_PROXY_URL;
         }
     } catch (e) {
-        console.warn('[IPTV] Tunnel discovery failed. Staying on Metadata Proxy to avoid Mixed Content.');
-        // If we are on web/HTTPS, never fallback to raw HTTP IP
+        // On HTTPS, fallback to Vercel proxy for streams too (slower but safe)
         if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.protocol === 'https:') {
             STREAM_PROXY_URL = getMetadataProxy();
         }
+        console.warn('[IPTV] Tunnel discovery failed. Using:', STREAM_PROXY_URL);
         return STREAM_PROXY_URL;
     }
 };
@@ -74,10 +79,12 @@ export const getIPTVChannels = async () => {
             }
         }
 
-        // Secure fetch: Use the discovered STREAM_PROXY_URL (Tunnel) to avoid Vercel timeouts for large payloads (9MB).
-        const playlistUrl = `${STREAM_PROXY_URL}/playlist`;
+        // IMPORTANT: Always use PROXY_URL (Vercel/HTTPS) for playlist fetch.
+        // The playlist is now ~71KB (server-side filtered) so Vercel won't timeout.
+        // STREAM_PROXY_URL (tunnel) is only used for actual video stream URLs.
+        const playlistUrl = `${PROXY_URL}/playlist`;
 
-        console.log('[IPTV] Fetching IPTV playlist securely via Proxy...');
+        console.log('[IPTV] Fetching IPTV playlist via Vercel Metadata Proxy...');
         const response = await fetch(playlistUrl, {
             headers: {
                 'X-API-Key': API_KEY
@@ -109,7 +116,8 @@ export const getIPTVChannels = async () => {
 
                 currentChannel = { name, logo, group };
             } else if (line.startsWith('http') || line.startsWith('/stream')) {
-                // IMPORTANT: Use the VM URL for streams to bypass Vercel's 10s timeout.
+                // Stream relative paths get the tunnel URL, not Vercel.
+                // STREAM_PROXY_URL is discovered tunnel (HTTPS) or Vercel fallback.
                 currentChannel.url = line.startsWith('/') ? `${STREAM_PROXY_URL}${line}` : line;
 
                 const nameUpper = currentChannel.name?.toUpperCase() || '';
