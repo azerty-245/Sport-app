@@ -166,23 +166,29 @@ app.get('/playlist', validateApiKey, async (req, res) => {
         if (isStale) fetchPlaylist();
     } else {
         if (configChanged) process.env.IPTV_URL = currentIPTVUrl;
-        // Wait max 8s for the fetch (Vercel times out at 10s)
+        // Wait max 5s for the fetch (Vercel times out at 10s)
         try {
-            const success = await Promise.race([
+            await Promise.race([
                 fetchPlaylist(),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
+                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
             ]);
-            if (success && playlistCache.data) {
+
+            if (playlistCache.data) {
                 res.setHeader('Content-Type', 'text/plain');
-                res.send(playlistCache.data);
-            } else {
-                res.status(502).send('IPTV source unavailable');
+                return res.send(playlistCache.data);
             }
         } catch (e) {
-            // If cold-start fetch takes >8s, return 503 so Vercel returns cleanly
-            console.warn('[Proxy] ⏱️ Playlist fetch timeout - IPTV source slow');
-            res.status(503).send('Warming up - try again in 10s');
+            console.warn(`[Proxy] ⏱️ Playlist fetch ${e.message} - IPTV source slow`);
         }
+
+        // Final Fallback: If we have ANY data (even stale), return it instead of erroring
+        if (playlistCache.data) {
+            res.setHeader('Content-Type', 'text/plain');
+            res.setHeader('X-Cache-Status', 'STALE_WAIT_TIMEOUT');
+            return res.send(playlistCache.data);
+        }
+
+        res.status(503).send('Warming up - try again in 10s');
     }
 });
 
