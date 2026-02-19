@@ -1,7 +1,22 @@
 const axios = require('axios');
 
-const VM_PROXY_URL = process.env.EXPO_PUBLIC_PROXY_URL || 'https://determined-satisfaction-richard-seeks.trycloudflare.com';
 const API_KEY = process.env.EXPO_PUBLIC_API_KEY || 'sport-zone-secure-v1';
+
+// Hardcoded fallback tunnel (Update this if proxy.js generates a new one)
+const FALLBACK_TUNNEL = 'https://determined-satisfaction-richard-seeks.trycloudflare.com';
+
+// Intelligent Proxy Selection: Ignore raw IP if it matches the blocked Oracle IP
+const getBaseUrl = (req) => {
+    const clientTunnel = req.headers['x-vm-tunnel'];
+    if (clientTunnel && clientTunnel.startsWith('http')) return clientTunnel.replace(/\/$/, '');
+
+    const envProxy = process.env.EXPO_PUBLIC_PROXY_URL;
+    if (envProxy && envProxy.startsWith('http') && !envProxy.includes('152.70.45.91')) {
+        return envProxy.replace(/\/$/, '');
+    }
+
+    return FALLBACK_TUNNEL;
+};
 
 module.exports = async (req, res) => {
     // CORS headers
@@ -36,11 +51,8 @@ module.exports = async (req, res) => {
         }
     }
 
-    // Dynamic routing: Check if client provided a tunnel URL
-    const clientTunnelUrl = req.headers['x-vm-tunnel'];
-    const baseUrl = (clientTunnelUrl && clientTunnelUrl.startsWith('http'))
-        ? clientTunnelUrl.replace(/\/$/, '')
-        : VM_PROXY_URL;
+    // Intelligent routing: Choose the best viable VM path
+    const baseUrl = getBaseUrl(req);
 
     // Extract the sub-path: /api/iptv/playlist -> /playlist
     const subPath = req.url.replace(/^\/?api\/iptv/, '') || '/';
