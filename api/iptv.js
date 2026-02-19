@@ -19,12 +19,19 @@ module.exports = async (req, res) => {
         const { url } = req.query;
         if (!url) return res.status(400).send('Missing url');
         try {
+            console.log(`[Vercel Proxy] Direct JSON Fetch: ${url}`);
             const response = await axios.get(url, {
                 timeout: 5000,
-                headers: { 'User-Agent': 'Mozilla/5.0' }
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'application/json',
+                    'Referer': 'https://www.sofascore.com/',
+                    'Origin': 'https://www.sofascore.com'
+                }
             });
             return res.status(200).json(response.data);
         } catch (e) {
+            console.error(`[Vercel Proxy] Direct JSON Error: ${e.message}`);
             return res.status(502).json({ error: 'Direct fetch failed', message: e.message });
         }
     }
@@ -39,6 +46,9 @@ module.exports = async (req, res) => {
     const subPath = req.url.replace(/^\/?api\/iptv/, '') || '/';
     const targetUrl = `${baseUrl}${subPath}`;
 
+    console.log(`[Vercel Proxy] Routing: ${subPath} -> ${targetUrl} (via ${clientTunnelUrl ? 'Header' : 'Default'})`);
+    const start = Date.now();
+
     // Forward API key
     const headers = {
         'X-API-Key': req.headers['x-api-key'] || req.query.key || API_KEY,
@@ -52,10 +62,12 @@ module.exports = async (req, res) => {
             url: targetUrl,
             headers,
             params: req.query,
-            timeout: 8000, // 8s hard limit (Vercel cuts at 10s)
+            timeout: 9000, // 9s (Vercel cuts at 10s)
             responseType: 'arraybuffer', // Handle binary and text uniformly
             validateStatus: () => true, // Don't throw on 4xx/5xx
         });
+
+        console.log(`[Vercel Proxy] ✅ Success: ${subPath} (${response.status}) in ${Date.now() - start}ms`);
 
         // Forward response headers
         res.status(response.status);
