@@ -5,7 +5,7 @@
 
 
 import { Platform } from 'react-native';
-import { API_KEY, PROXY_URL } from './iptv';
+import { PROXY_URL } from './iptv';
 
 // SofaScore API (Live Scores)
 const SOFASCORE_LIVE_URL = 'https://api.sofascore.com/api/v1/sport/football/events/live';
@@ -29,7 +29,8 @@ export async function fetchSofaScoreLive() {
             });
         } else {
             // PROXIED FETCH (Necessary for Web)
-            const proxiedUrl = `${PROXY_URL}/stream?url=${encodeURIComponent(SOFASCORE_LIVE_URL)}&nocode=true&key=${API_KEY}`;
+            // Use the new /json endpoint on Vercel to bypass VM IP block
+            const proxiedUrl = `${PROXY_URL}/json?url=${encodeURIComponent(SOFASCORE_LIVE_URL)}`;
             response = await fetch(proxiedUrl);
         }
 

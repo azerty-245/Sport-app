@@ -13,14 +13,37 @@ module.exports = async (req, res) => {
         return res.status(200).end();
     }
 
+    // NEW: Direct JSON fetch from Vercel (Bypass VM)
+    // Usage: /api/iptv/json?url=https://target-api.com...
+    if (req.url.includes('/json')) {
+        const { url } = req.query;
+        if (!url) return res.status(400).send('Missing url');
+        try {
+            const response = await axios.get(url, {
+                timeout: 5000,
+                headers: { 'User-Agent': 'Mozilla/5.0' }
+            });
+            return res.status(200).json(response.data);
+        } catch (e) {
+            return res.status(502).json({ error: 'Direct fetch failed', message: e.message });
+        }
+    }
+
+    // Dynamic routing: Check if client provided a tunnel URL
+    const clientTunnelUrl = req.headers['x-vm-tunnel'];
+    const baseUrl = (clientTunnelUrl && clientTunnelUrl.startsWith('http'))
+        ? clientTunnelUrl.replace(/\/$/, '')
+        : VM_PROXY_URL;
+
     // Extract the sub-path: /api/iptv/playlist -> /playlist
     const subPath = req.url.replace(/^\/?api\/iptv/, '') || '/';
-    const targetUrl = `${VM_PROXY_URL}${subPath}`;
+    const targetUrl = `${baseUrl}${subPath}`;
 
     // Forward API key
     const headers = {
         'X-API-Key': req.headers['x-api-key'] || req.query.key || API_KEY,
-        'User-Agent': 'Vercel-Proxy/1.0'
+        'User-Agent': 'Vercel-Proxy/1.0',
+        'X-Vercel-Proxy': 'true'
     };
 
     try {
