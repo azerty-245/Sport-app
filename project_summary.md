@@ -25,5 +25,22 @@ Le défi principal a été de maintenir des flux IPTV (MPEG-TS) sur le Web, car 
 - **Sécurité** : 🟢 HTTPS de bout en bout et isolation Zero-Exposure.
 - **Légal** : 🟢 Politique de confidentialité et licence Eben à jour.
 
+## 🛠️ Connexion & Mise à jour (Oracle VM)
+
+### 🔌 Connexion SSH
+Pour se connecter à la VM Oracle :
+```bash
+ssh -i "C:\Users\USER\Downloads\ssh-key-2026-02-14.key" ubuntu@152.70.45.91
+```
+
+### 🔄 Procédure de Mise à jour
+Une fois connecté, exécutez ces commandes pour synchroniser le code et redémarrer le proxy :
+```bash
+cd ~/sport-app-sync/
+git pull origin master
+cp server/proxy.js .
+pm2 restart streaming-proxy
+```
+
 ---
-*Dernière mise à jour : 18/02/2026 - Version 1.3.0 (Streaming Stable)*
+*Dernière mise à jour : 19/02/2026 - Version 1.3.1 (Déploiement VM Automatisé)*
