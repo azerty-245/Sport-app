@@ -41,16 +41,19 @@ export default function Root({ children }: { children: React.ReactNode }) {
         */}
                 <ScrollViewStyleReset />
 
-                {/* Monetag Ads & Direct Link Popunder Ruse */}
+                {/* Monetag Vignette */}
+                <script dangerouslySetInnerHTML={{
+                    __html: `(function(s){s.dataset.zone='10626370',s.src='https://gizokraijaw.net/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))`
+                }} />
+
+                {/* Monetag In-Page Push */}
+                <script dangerouslySetInnerHTML={{
+                    __html: `(function(s){s.dataset.zone='10626367',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))`
+                }} />
+
+                {/* Multi-Link Popunder Ruse */}
                 <script dangerouslySetInnerHTML={{
                     __html: `
-                        // 1. Vignette
-                        (function(s){s.dataset.zone='10626370',s.src='https://gizokraijaw.net/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')));
-                        
-                        // 2. In-Page Push
-                        (function(s){s.dataset.zone='10626367',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')));
-                        
-                        // 3. Multi-Link Popunder Ruse
                         (function() {
                             const links = [
                                 'https://omg10.com/4/10626366',
