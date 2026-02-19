@@ -15,7 +15,7 @@
             "channel": "preview",
             "env": {
                 "EXPO_PUBLIC_FOOTBALL_API_KEY": "prince",
-                "EXPO_PUBLIC_PROXY_URL": "http://152.70.45.91:3005",
+                "EXPO_PUBLIC_PROXY_URL": "https://eben-digi.vercel.app/api/iptv",
                 "EXPO_PUBLIC_API_KEY": "sport-zone-secure-v1"
             }
         },

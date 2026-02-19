@@ -95,15 +95,15 @@ console.log('[IPTV] Initialized with Metadata Proxy (HTTPS):', PROXY_URL);
 const IPTV_URL = process.env.EXPO_PUBLIC_IPTV_URL || '';
 export const API_KEY = process.env.EXPO_PUBLIC_API_KEY || 'sport-zone-secure-v1';
 
-export const getIPTVChannels = async () => {
+export const getIPTVChannels = async (force = false) => {
     try {
-        // ... cache check ...
-        if (Platform.OS !== 'web') {
+        // Cache management
+        if (Platform.OS !== 'web' && !force) {
             const cachedData = await AsyncStorage.getItem(CACHE_KEY);
             if (cachedData) {
                 const { timestamp, channels } = JSON.parse(cachedData);
                 if (Date.now() - timestamp < CACHE_DURATION) {
-                    console.log('Returning cached IPTV channels');
+                    console.log('[IPTV] Returning cached channels (Non-Web)');
                     return channels;
                 }
             }

@@ -55,15 +55,15 @@ export default function StreamingScreen() {
 
     const flatListRef = useRef<FlatList>(null);
 
-    const fetchData = useCallback(async () => {
+    const fetchData = useCallback(async (force = false) => {
         try {
-            console.log('[DEBUG] fetchData starting...');
+            console.log(`[DEBUG] fetchData starting (force=${force})...`);
             const [matchesData, channelsData, highlightsData, liveScoresData, myIPTVData] = await Promise.all([
                 getAllStreaming().catch(e => { console.warn('Matches API failed', e); return null; }),
                 getStreamingChannels().catch(e => { console.warn('Channels API failed', e); return null; }),
                 fetchScoreBatHighlights().catch(e => { console.warn('Highlights API failed', e); return null; }),
                 fetchAllLiveScores().catch(e => { console.warn('LiveScores API failed', e); return null; }),
-                getIPTVChannels().catch(e => { console.warn('IPTV API failed', e); return null; })
+                getIPTVChannels(force).catch(e => { console.warn('IPTV API failed', e); return null; })
             ]);
 
             // Robust data processing - Always falling back to empty arrays
@@ -102,7 +102,7 @@ export default function StreamingScreen() {
 
     const onRefresh = () => {
         setRefreshing(true);
-        fetchData();
+        fetchData(true); // Force refresh to clear cache
     };
 
     // Filtered channels (from IPTV)
