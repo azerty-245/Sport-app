@@ -23,9 +23,8 @@ const getMetadataProxy = () => {
 
 const TUNNEL_PERSIST_KEY = 'vm_tunnel_url_v1';
 
-// Use a function to get the current PROXY_URL to avoid stale top-level constants
-export let PROXY_URL = getMetadataProxy();
-export let STREAM_PROXY_URL = process.env.EXPO_PUBLIC_PROXY_URL || 'http://152.70.45.91:3005';
+// 2. STREAM_PROXY_URL: Use the active Cloudflare tunnel for media/streaming
+export let STREAM_PROXY_URL = 'https://determined-satisfaction-richard-seeks.trycloudflare.com';
 
 // Internal state
 let isDiscovering = false;
@@ -37,25 +36,23 @@ export const discoverTunnel = async () => {
     if (isDiscovering) return STREAM_PROXY_URL;
     isDiscovering = true;
     try {
-        // 1. Try to load from persistent storage first
-        if (!STREAM_PROXY_URL.includes('trycloudflare.com')) {
-            const savedTunnel = await AsyncStorage.getItem(TUNNEL_PERSIST_KEY);
-            if (savedTunnel) {
-                STREAM_PROXY_URL = savedTunnel;
-                console.log('[IPTV] 💾 Loaded saved tunnel:', STREAM_PROXY_URL);
-            }
+        // 1. Try to load from persistent storage first if current is default
+        const savedTunnel = await AsyncStorage.getItem(TUNNEL_PERSIST_KEY);
+        if (savedTunnel && savedTunnel.startsWith('http')) {
+            STREAM_PROXY_URL = savedTunnel.replace(/\/$/, '');
+            console.log('[IPTV] 💾 Loaded saved tunnel:', STREAM_PROXY_URL);
         }
 
-        console.log('[IPTV] Discovering secure tunnel via Vercel...');
+        console.log('[IPTV] Discovering tunnel via Vercel proxy...');
         const metadataProxy = getMetadataProxy();
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 6000);
 
-        // Use X-VM-Tunnel header even during discovery so Vercel can find the VM if it knows a recent one
-        const headers = { 'X-API-Key': API_KEY };
-        if (STREAM_PROXY_URL.includes('trycloudflare.com')) {
-            headers['X-VM-Tunnel'] = STREAM_PROXY_URL;
-        }
+        // Pass the known tunnel in the header so Vercel can reach the VM even if raw IP is dead
+        const headers = {
+            'X-API-Key': API_KEY,
+            'X-VM-Tunnel': STREAM_PROXY_URL
+        };
 
         const response = await fetch(`${metadataProxy}/tunnel-info`, {
             headers,
@@ -67,18 +64,17 @@ export const discoverTunnel = async () => {
 
         const data = await response.json();
         if (data.tunnelUrl && data.tunnelUrl.startsWith('http')) {
-            STREAM_PROXY_URL = data.tunnelUrl.replace(/\/$/, '');
-            console.log('[IPTV] 🛡️ Secure Tunnel URL discovered:', STREAM_PROXY_URL);
-            // Save for next time
-            await AsyncStorage.setItem(TUNNEL_PERSIST_KEY, STREAM_PROXY_URL);
+            const discoveredUrl = data.tunnelUrl.replace(/\/$/, '');
+            if (discoveredUrl !== STREAM_PROXY_URL) {
+                STREAM_PROXY_URL = discoveredUrl;
+                console.log('[IPTV] 🛡️ New Tunnel discovered:', STREAM_PROXY_URL);
+                await AsyncStorage.setItem(TUNNEL_PERSIST_KEY, STREAM_PROXY_URL);
+            }
             return STREAM_PROXY_URL;
         }
     } catch (e) {
-        // Fallback to Vercel proxy for streams on HTTPS
-        if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.protocol === 'https:') {
-            STREAM_PROXY_URL = getMetadataProxy();
-        }
-        console.warn('[IPTV] Discovery failed. Using fallback:', STREAM_PROXY_URL);
+        // If discovery fails and IP is blocked, we still have our last known tunnel
+        console.warn('[IPTV] Discovery failed. Staying on:', STREAM_PROXY_URL);
     } finally {
         isDiscovering = false;
         return STREAM_PROXY_URL;
