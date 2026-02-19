@@ -1,0 +1,3 @@
+startapp.com, 201699988, DIRECT, d036214a3d699912
+# Monetag
+monetag.com, 10626370, DIRECT, 123456789 (Verify your specific Seller ID)
