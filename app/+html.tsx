@@ -41,42 +41,43 @@ export default function Root({ children }: { children: React.ReactNode }) {
         */}
                 <ScrollViewStyleReset />
 
-                {/* Monetag Vignette */}
-                <script dangerouslySetInnerHTML={{
-                    __html: `(function(s){s.dataset.zone='10626370',s.src='https://gizokraijaw.net/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))`
-                }} />
-
-                {/* Monetag In-Page Push */}
-                <script dangerouslySetInnerHTML={{
-                    __html: `(function(s){s.dataset.zone='10626367',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))`
-                }} />
-
-                {/* Multi-Link Popunder Ruse */}
+                {/* Monetag Ads & Direct Link Popunder Ruse: Delayed for performance after successful verification */}
                 <script dangerouslySetInnerHTML={{
                     __html: `
-                        (function() {
-                            const links = [
-                                'https://omg10.com/4/10626366',
-                                'https://omg10.com/4/10613730'
-                            ];
-                            let clickCount = 0;
+                        setTimeout(function() {
+                            // 1. Vignette
+                            (function(s){s.dataset.zone='10626370',s.src='https://gizokraijaw.net/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')));
                             
-                            const handleInteraction = function() {
-                                clickCount++;
-                                if (clickCount === 1 || (clickCount > 3 && Math.random() > 0.7)) {
-                                    const url = clickCount === 1 ? links[0] : links[1];
-                                    window.open(url, '_blank');
-                                    
-                                    if (clickCount > 5) {
-                                        document.removeEventListener('click', handleInteraction);
-                                        document.removeEventListener('touchstart', handleInteraction);
+                            // 2. In-Page Push
+                            (function(s){s.dataset.zone='10626367',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')));
+                            
+                            // 3. Multi-Link Popunder Ruse
+                            (function() {
+                                const links = [
+                                    'https://omg10.com/4/10626366',
+                                    'https://omg10.com/4/10613730'
+                                ];
+                                let clickCount = 0;
+                                
+                                const handleInteraction = function() {
+                                    clickCount++;
+                                    if (clickCount === 1 || (clickCount > 3 && Math.random() > 0.7)) {
+                                        const url = clickCount === 1 ? links[0] : links[1];
+                                        window.open(url, '_blank');
+                                        
+                                        if (clickCount > 5) {
+                                            document.removeEventListener('click', handleInteraction);
+                                            document.removeEventListener('touchstart', handleInteraction);
+                                        }
                                     }
-                                }
-                            };
+                                };
+                                
+                                document.addEventListener('click', handleInteraction);
+                                document.addEventListener('touchstart', handleInteraction);
+                            })();
                             
-                            document.addEventListener('click', handleInteraction);
-                            document.addEventListener('touchstart', handleInteraction);
-                        })();
+                            console.log('Ads optimized for performance (10s delay) 🚀');
+                        }, 10000);
                     `
                 }} />
 
