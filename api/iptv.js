@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const VM_PROXY_URL = process.env.EXPO_PUBLIC_PROXY_URL || 'http://152.70.45.91:3005';
+const VM_PROXY_URL = process.env.EXPO_PUBLIC_PROXY_URL || 'https://determined-satisfaction-richard-seeks.trycloudflare.com';
 const API_KEY = process.env.EXPO_PUBLIC_API_KEY || 'sport-zone-secure-v1';
 
 module.exports = async (req, res) => {
