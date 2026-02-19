@@ -58,7 +58,7 @@ module.exports = async (req, res) => {
     const subPath = req.url.replace(/^\/?api\/iptv/, '') || '/';
     const targetUrl = `${baseUrl}${subPath}`;
 
-    console.log(`[Vercel Proxy] Routing: ${subPath} -> ${targetUrl} (via ${clientTunnelUrl ? 'Header' : 'Default'})`);
+    console.log(`[Vercel Proxy] Routing: ${subPath} -> ${targetUrl} (via ${req.headers['x-vm-tunnel'] ? 'Header' : 'Default'})`);
     const start = Date.now();
 
     // Forward API key
