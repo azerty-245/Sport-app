@@ -23,7 +23,8 @@ const getMetadataProxy = () => {
 
 const TUNNEL_PERSIST_KEY = 'vm_tunnel_url_v1';
 
-// 2. STREAM_PROXY_URL: Use the active Cloudflare tunnel for media/streaming
+// Use a function to get the current PROXY_URL to avoid stale top-level constants
+export let PROXY_URL = getMetadataProxy();
 export let STREAM_PROXY_URL = 'https://determined-satisfaction-richard-seeks.trycloudflare.com';
 
 // Internal state
