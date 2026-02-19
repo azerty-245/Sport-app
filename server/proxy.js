@@ -265,8 +265,11 @@ app.get('/stream', validateApiKey, async (req, res) => {
     let broadcaster = broadcastHub.activeStreams.get(url);
     if (!broadcaster) {
         if (broadcastHub.activeStreams.size >= MAX_UNIQUE_CHANNELS) return res.status(503).send('Busy');
+        console.log(`[Proxy] 🎥 Starting NEW Broadcaster for: ${url.substring(url.lastIndexOf('/') + 1)}`);
         broadcaster = new Broadcaster(url);
         broadcastHub.activeStreams.set(url, broadcaster);
+    } else {
+        console.log(`[Proxy] 🤝 Sharing existing stream for: ${url.substring(url.lastIndexOf('/') + 1)} (Active clients: ${broadcaster.clients.size})`);
     }
     broadcaster.addClient(res);
     res.on('close', () => broadcaster.removeClient(res));
