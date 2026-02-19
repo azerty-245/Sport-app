@@ -205,11 +205,15 @@ class Broadcaster {
         this.url = url;
         this.clients = new Set();
         this.status = 'starting';
+        this.hasReceivedData = false;
+        this.useFallback = false;
         this.startStream();
     }
 
     startStream() {
         if (this.url.includes('trycloudflare.com') || this.url.includes('localhost')) return;
+
+        this.hasReceivedData = false;
 
         this.ffmpeg = spawn('ffmpeg', [
             '-reconnect', '1', '-reconnect_at_eof', '1', '-reconnect_streamed', '1',
@@ -221,16 +225,82 @@ class Broadcaster {
             '-f', 'mpegts', 'pipe:1'
         ]);
 
+        // Timeout: if FFmpeg doesn't produce data within 10s, switch to direct pipe
+        this.dataTimeout = setTimeout(() => {
+            if (!this.hasReceivedData && this.clients.size > 0) {
+                console.warn(`[Proxy] ⏱️ FFmpeg produced no data in 10s for: ${this.url.substring(this.url.lastIndexOf('/') + 1)} — Falling back to direct pipe`);
+                this.useFallback = true;
+                if (this.ffmpeg) { try { this.ffmpeg.kill('SIGKILL'); } catch (e) { } }
+                this.startDirectPipe();
+            }
+        }, 10000);
+
         this.ffmpeg.stdout.on('data', (chunk) => {
+            if (!this.hasReceivedData) {
+                this.hasReceivedData = true;
+                clearTimeout(this.dataTimeout);
+                console.log(`[Proxy] 📦 First data chunk received (${chunk.length} bytes)`);
+            }
             this.status = 'streaming';
             for (const client of this.clients) {
                 try { client.write(chunk); } catch (e) { this.clients.delete(client); }
             }
         });
 
-        this.ffmpeg.on('close', () => {
-            if (this.clients.size > 0) setTimeout(() => this.startStream(), 2000);
-            else this.stopStream();
+        this.ffmpeg.stderr.on('data', (data) => {
+            // Log FFmpeg errors for debugging (only first 200 chars)
+            const msg = data.toString().trim();
+            if (msg.length > 0 && !msg.startsWith('frame=') && !msg.startsWith('size=')) {
+                console.log(`[FFmpeg] ${msg.substring(0, 200)}`);
+            }
+        });
+
+        this.ffmpeg.on('close', (code) => {
+            clearTimeout(this.dataTimeout);
+            if (code !== 0 && !this.useFallback) {
+                console.warn(`[Proxy] ⚠️ FFmpeg exited with code ${code}`);
+            }
+            if (this.clients.size > 0 && !this.useFallback) {
+                setTimeout(() => this.startStream(), 2000);
+            } else if (!this.useFallback) {
+                this.stopStream();
+            }
+        });
+    }
+
+    // Direct pipe fallback: stream raw bytes from source without FFmpeg
+    startDirectPipe() {
+        console.log(`[Proxy] 🔁 Direct pipe for: ${this.url.substring(this.url.lastIndexOf('/') + 1)}`);
+        this.status = 'direct-pipe';
+        axios({
+            method: 'get',
+            url: this.url,
+            responseType: 'stream',
+            timeout: 15000,
+            headers: { 'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18' }
+        }).then(response => {
+            this.directStream = response.data;
+            response.data.on('data', (chunk) => {
+                this.hasReceivedData = true;
+                this.status = 'streaming';
+                for (const client of this.clients) {
+                    try { client.write(chunk); } catch (e) { this.clients.delete(client); }
+                }
+            });
+            response.data.on('end', () => {
+                if (this.clients.size > 0) {
+                    setTimeout(() => this.startDirectPipe(), 2000);
+                } else {
+                    this.stopStream();
+                }
+            });
+            response.data.on('error', (err) => {
+                console.error(`[Proxy] ❌ Direct pipe error: ${err.message}`);
+                this.stopStream();
+            });
+        }).catch(err => {
+            console.error(`[Proxy] ❌ Direct pipe connection failed: ${err.message}`);
+            this.stopStream();
         });
     }
 
@@ -238,7 +308,9 @@ class Broadcaster {
         this.clients.add(res);
         res.setHeader('Content-Type', 'video/mp2t');
         res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Cache-Control', 'no-cache, no-store');
         res.setHeader('Connection', 'keep-alive');
+        res.flushHeaders(); // Send headers immediately so client MediaSource doesn't timeout
     }
 
     removeClient(res) {
@@ -247,7 +319,9 @@ class Broadcaster {
     }
 
     stopStream() {
-        if (this.ffmpeg) this.ffmpeg.kill('SIGKILL');
+        clearTimeout(this.dataTimeout);
+        if (this.ffmpeg) { try { this.ffmpeg.kill('SIGKILL'); } catch (e) { } }
+        if (this.directStream) { try { this.directStream.destroy(); } catch (e) { } }
         broadcastHub.activeStreams.delete(this.url);
     }
 }
@@ -276,6 +350,38 @@ app.get('/stream', validateApiKey, async (req, res) => {
     }
     broadcaster.addClient(res);
     res.on('close', () => broadcaster.removeClient(res));
+});
+
+// --- JSON PROXY for Sofascore Fallback ---
+app.get('/json', validateApiKey, async (req, res) => {
+    const { url } = req.query;
+    if (!url) return res.status(400).send('Missing url');
+
+    try {
+        console.log(`[Proxy] 🌍 JSON Fetch: ${url}`);
+        const response = await axios.get(url, {
+            timeout: 8000,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'application/json, text/plain, */*',
+                'Referer': 'https://www.sofascore.com/',
+                'Origin': 'https://www.sofascore.com'
+            }
+        });
+
+        // Explicit CORS for JSON
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Content-Type', 'application/json');
+
+        res.json(response.data);
+    } catch (e) {
+        console.error(`[Proxy] ❌ JSON Error: ${e.message}`);
+        if (e.response) {
+            res.status(e.response.status).send(e.response.data);
+        } else {
+            res.status(502).send('Error fetching JSON');
+        }
+    }
 });
 
 app.listen(PORT, '0.0.0.0', () => {

@@ -233,111 +233,139 @@ export default function StreamingScreen() {
           <head>
             <meta name="viewport" content="width=device-width,initial-scale=1">
             <script src="https://cdn.jsdelivr.net/npm/mpegts.js@1.7.3/dist/mpegts.js"><\/script>
-            <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"><\/script>
             <style>
                 body { margin:0; background:#000; overflow:hidden; display:flex; align-items:center; justify-content:center; height:100vh; }
                 #video { border:0; width:100%; height:100vh; background:#000; }
-                #status { position:fixed; top:10px; left:10px; color:#888; font-family:sans-serif; font-size:12px; z-index:10; }
+                #status { position:fixed; top:10px; left:10px; color:#aaa; font-family:sans-serif; font-size:13px; z-index:10; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
             </style>
           </head>
           <body>
-            <div id="status">Chargement du flux...</div>
-            <video id="video" controls autoplay playsinline></video>
+            <div id="status">⏳ Connexion au flux...</div>
+            <video id="video" controls playsinline></video>
             <script>
               var video = document.getElementById('video');
               var statusOverlay = document.getElementById('status');
               var src = '${url}';
+              var MAX_RETRIES = 2;
+              var retryCount = 0;
+              var currentPlayer = null;
+              var isPlaying = false;
 
               function log(msg) {
                 console.log(msg);
+                if (statusOverlay && !isPlaying) {
+                  statusOverlay.textContent = msg;
+                }
               }
 
-              function hideStatus() { if(statusOverlay) statusOverlay.style.display = 'none'; }
+              function hideStatus() {
+                if (statusOverlay) statusOverlay.style.display = 'none';
+                isPlaying = true;
+              }
 
               log('Initialisation du lecteur...');
 
               // Listen for browser-level network issues
-              window.addEventListener('offline', function() { log('⚠️ CONNEXION PERDUE (Check Wifi/4G)'); });
-              window.addEventListener('online', function() { log('✅ CONNEXION RÉTABLIE'); });
+              window.addEventListener('offline', function() { log('⚠️ CONNEXION PERDUE'); });
+              window.addEventListener('online', function() { log('✅ CONNEXION RÉTABLIE — Rechargement...'); setTimeout(function() { startPlayer(); }, 1000); });
 
-              video.addEventListener('waiting', function() { log('⏳ Optimisation du flux (Lissage...)'); });
-              video.addEventListener('stalled', function() { log('🚫 Flux arrêté (Problème serveur)'); });
-              video.addEventListener('error', function() { log('❌ Erreur Lecteur: ' + (video.error ? video.error.message : 'Inconnue')); });
+              video.addEventListener('waiting', function() { if (!isPlaying) log('⏳ Optimisation du flux...'); });
+              video.addEventListener('stalled', function() { log('⏳ Flux en attente du serveur...'); });
 
-              // Try mpegts.js first (for MPEG-TS / FLV streams from IPTV servers)
-              // Note: Safari on iOS 17.1+ supports Managed Media Source
-              if (mpegts.isSupported()) {
-                log('Mode MPEG-TS activé');
-                var player = mpegts.createPlayer({
+              function destroyPlayer() {
+                if (currentPlayer) {
+                  try { currentPlayer.pause(); } catch(e) {}
+                  try { currentPlayer.unload(); } catch(e) {}
+                  try { currentPlayer.detachMediaElement(); } catch(e) {}
+                  try { currentPlayer.destroy(); } catch(e) {}
+                  currentPlayer = null;
+                }
+                // Reset video element
+                video.removeAttribute('src');
+                video.load();
+              }
+
+              function startPlayer() {
+                destroyPlayer();
+                isPlaying = false;
+
+                if (!mpegts.isSupported()) {
+                  log('❌ Votre navigateur ne supporte pas MPEG-TS');
+                  return;
+                }
+
+                var attempt = retryCount + 1;
+                log('📡 Tentative ' + attempt + '/' + (MAX_RETRIES + 1) + ' — Connexion...');
+
+                currentPlayer = mpegts.createPlayer({
                   type: 'mpegts',
                   isLive: true,
                   url: src
                 }, {
                   enableWorker: true,
-                  liveBufferLatencyChasing: false, 
-                  liveSync: true,                 
+                  lazyLoad: false,
+                  liveBufferLatencyChasing: false,
+                  liveSync: true,
                   liveSyncTarget: 15.0,
-                  liveBufferLatencyMaxLatency: 30.0,
+                  liveBufferLatencyMaxLatency: 45.0,
                   liveBufferLatencyMinLatency: 10.0,
                   enableStashBuffer: true,
-                  stashInitialSize: 2 * 1024 * 1024,
+                  stashInitialSize: 4 * 1024 * 1024,
                   autoCleanupSourceBuffer: true,
-                  autoCleanupMaxBackwardDuration: 30,
-                  autoCleanupMinBackwardDuration: 15,
+                  autoCleanupMaxBackwardDuration: 60,
+                  autoCleanupMinBackwardDuration: 30,
                   fixAudioTimestampGap: true,
-                  lazyLoadMaxDuration: 30,
+                  lazyLoadMaxDuration: 60,
                 });
-                player.attachMediaElement(video);
-                player.load();
-                player.play().catch(function(e) { log('Autoplay bloqué'); });
-                
-                player.on(mpegts.Events.ERROR, function(errType, errDetail) {
-                   log('❌ Erreur Flux: ' + errType + ' (' + errDetail + ')');
-                   try { player.destroy(); } catch(e) {}
-                   tryHLS();
+
+                currentPlayer.attachMediaElement(video);
+                currentPlayer.load();
+
+                // Only attempt play after we have metadata (avoids Autoplay bloqué + premature endOfStream)
+                video.addEventListener('canplay', function onCanPlay() {
+                  video.removeEventListener('canplay', onCanPlay);
+                  log('▶️ Démarrage de la lecture...');
+                  video.play().catch(function(e) {
+                    log('⚠️ Cliquez sur la vidéo pour lancer la lecture');
+                  });
                 });
-                
-                video.addEventListener('playing', function() {
+
+                video.addEventListener('playing', function onPlaying() {
+                  video.removeEventListener('playing', onPlaying);
                   log('▶️ Lecture en cours');
                   hideStatus();
                 });
-              } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                // Safari Native HLS Fallback (for .m3u8 sources)
-                log('Mode Safari Natif détecté');
-                tryDirect();
-              } else {
-                tryHLS();
-              }
 
-              function tryHLS() {
-                log('Passage en mode HLS...');
-                if (typeof Hls !== 'undefined' && Hls.isSupported()) {
-                  var hls = new Hls({ enableWorker: true });
-                  hls.loadSource(src);
-                  hls.attachMedia(video);
-                  hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                    video.play().catch(function(e) { log('HLS Autoplay failed'); });
-                    hideStatus();
-                  });
-                  hls.on(Hls.Events.ERROR, function(event, data) {
-                    if (data.fatal) { log('❌ Erreur HLS fatale'); tryDirect(); }
-                  });
-                } else {
-                  tryDirect();
-                }
-              }
-
-              function tryDirect() {
-                log('Lecture HTML5 Directe...');
-                video.src = src;
-                video.addEventListener('loadedmetadata', function() {
-                  video.play().catch(function(e) { log('Direct Autoplay failed'); });
-                  hideStatus();
+                // Error handling with retry
+                currentPlayer.on(mpegts.Events.ERROR, function(errType, errDetail) {
+                  log('⚠️ Erreur flux: ' + errType);
+                  if (retryCount < MAX_RETRIES) {
+                    retryCount++;
+                    var delay = retryCount * 3;
+                    log('🔄 Nouvelle tentative dans ' + delay + 's...');
+                    setTimeout(function() { startPlayer(); }, delay * 1000);
+                  } else {
+                    log('❌ Impossible de lire ce flux après ' + (MAX_RETRIES + 1) + ' tentatives');
+                  }
                 });
-                video.addEventListener('error', function() {
-                   log('❌ Échec total de lecture');
+
+                // Also handle video element errors (e.g. DEMUXER_ERROR)
+                video.addEventListener('error', function onError() {
+                  video.removeEventListener('error', onError);
+                  var msg = video.error ? video.error.message : 'Erreur inconnue';
+                  if (!isPlaying && retryCount < MAX_RETRIES) {
+                    retryCount++;
+                    var delay = retryCount * 3;
+                    log('🔄 Erreur lecteur — Retry dans ' + delay + 's...');
+                    setTimeout(function() { startPlayer(); }, delay * 1000);
+                  } else if (!isPlaying) {
+                    log('❌ Échec de lecture: ' + msg);
+                  }
                 });
               }
+
+              // Start first attempt
+              startPlayer();
             </script>
           </body>
         </html>`,
@@ -635,14 +663,17 @@ export default function StreamingScreen() {
                         if (!content || !isMounted) return null;
 
                         if (Platform.OS === 'web') {
+                            // On Web, render the HTML content directly in an iframe with srcDoc
+                            // This allows the mpegts.js/hls.js scripts inside content.value to execute
                             return (
                                 <View style={{ flex: 1, width: '100%', maxWidth: 1000, alignSelf: 'center', justifyContent: 'center' }}>
                                     <View style={{ width: '100%', aspectRatio: 16 / 9, backgroundColor: '#000' }}>
                                         <iframe
-                                            src={content.type === 'uri' ? content.value : undefined}
                                             srcDoc={content.type === 'html' ? content.value : undefined}
+                                            src={content.type === 'uri' ? content.value : undefined}
                                             style={{ border: 'none', width: '100%', height: '100%' }}
                                             allowFullScreen
+                                            allow="autoplay; encrypted-media"
                                             title="Stream"
                                         />
                                     </View>
