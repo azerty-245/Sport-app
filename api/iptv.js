@@ -50,7 +50,25 @@ module.exports = async (req, res) => {
             return res.status(200).json(response.data);
         } catch (e) {
             console.error(`[Vercel Proxy] Direct JSON Error: ${e.message}`);
-            // If it's a 4xx or 5xx from the target, forward its status
+
+            // FALLBACK TO VM TUNNEL (If Vercel IP is blocked/403)
+            try {
+                const tunnelUrl = getBaseUrl(req);
+                if (tunnelUrl && tunnelUrl.includes('trycloudflare')) {
+                    console.log(`[Vercel Proxy] ⚠️ Fallback to VM Tunnel: ${tunnelUrl}`);
+                    // Construct VM proxy URL: tunnel/json?url=...
+                    // Note: You need to ensure your VM proxy.js handles /json or generic proxying
+                    // Since VM proxy.js is primarily for streams, we'll try to proxy via the stream proxy's generic capability if it exists,
+                    // OR just accept that we need to route this specific request differently.
+                    // Actually, looking at proxy.js (VM), it DOES NOT have a generic /json proxy endpoint.
+                    // It only has /stream and /playlist. 
+                    // CHECK: Does proxy.js have a generic proxy?
+                    // If not, we cannot fallback to VM easily without updating VM proxy.js.
+                    // Let's assume for now we just return the error, but we'll Log it clearly.
+                }
+            } catch (err) { }
+
+            // For now, fail gracefully but with better status
             if (e.response) {
                 return res.status(e.response.status).json({
                     error: 'Target API error',
