@@ -242,20 +242,14 @@ export default function StreamingScreen() {
           </head>
           <body>
             <div id="status">Chargement du flux...</div>
-            <div id="debug-log" style="position:fixed; bottom:50px; left:10px; color:#0f0; font-family:monospace; font-size:10px; z-index:100; background:rgba(0,0,0,0.5); pointer-events:none;"></div>
             <video id="video" controls autoplay playsinline></video>
             <script>
               var video = document.getElementById('video');
               var statusOverlay = document.getElementById('status');
-              var debugLog = document.getElementById('debug-log');
               var src = '${url}';
 
               function log(msg) {
                 console.log(msg);
-                var div = document.createElement('div');
-                div.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
-                debugLog.appendChild(div);
-                if (debugLog.children.length > 5) debugLog.removeChild(debugLog.firstChild);
               }
 
               function hideStatus() { if(statusOverlay) statusOverlay.style.display = 'none'; }
