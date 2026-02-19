@@ -265,6 +265,7 @@ export default function StreamingScreen() {
               video.addEventListener('error', function() { log('❌ Erreur Lecteur: ' + (video.error ? video.error.message : 'Inconnue')); });
 
               // Try mpegts.js first (for MPEG-TS / FLV streams from IPTV servers)
+              // Note: Safari on iOS 17.1+ supports Managed Media Source
               if (mpegts.isSupported()) {
                 log('Mode MPEG-TS activé');
                 var player = mpegts.createPlayer({
@@ -275,11 +276,11 @@ export default function StreamingScreen() {
                   enableWorker: true,
                   liveBufferLatencyChasing: false, 
                   liveSync: true,                 
-                  liveSyncTarget: 15.0,            // 15 seconds cushion for deep smoothing
-                  liveBufferLatencyMaxLatency: 30.0, // Only jump if > 30s late
-                  liveBufferLatencyMinLatency: 10.0, // Keep at least 10s of data
+                  liveSyncTarget: 15.0,
+                  liveBufferLatencyMaxLatency: 30.0,
+                  liveBufferLatencyMinLatency: 10.0,
                   enableStashBuffer: true,
-                  stashInitialSize: 2 * 1024 * 1024, // 2MB initial buffer
+                  stashInitialSize: 2 * 1024 * 1024,
                   autoCleanupSourceBuffer: true,
                   autoCleanupMaxBackwardDuration: 30,
                   autoCleanupMinBackwardDuration: 15,
@@ -296,16 +297,14 @@ export default function StreamingScreen() {
                    tryHLS();
                 });
                 
-                setInterval(function() {
-                  if (player.statisticsInfo) {
-                    // Hidden debug info
-                  }
-                }, 3000);
-
                 video.addEventListener('playing', function() {
                   log('▶️ Lecture en cours');
                   hideStatus();
                 });
+              } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                // Safari Native HLS Fallback (for .m3u8 sources)
+                log('Mode Safari Natif détecté');
+                tryDirect();
               } else {
                 tryHLS();
               }
