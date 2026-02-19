@@ -15,7 +15,6 @@ app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, HEAD');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-API-Key, Range, Authorization');
     res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Range, X-Chunk-Size');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
 
     if (req.method === 'OPTIONS') {
         return res.sendStatus(200);

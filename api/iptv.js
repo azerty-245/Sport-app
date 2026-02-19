@@ -37,17 +37,27 @@ module.exports = async (req, res) => {
         try {
             console.log(`[Vercel Proxy] Direct JSON Fetch: ${url}`);
             const response = await axios.get(url, {
-                timeout: 5000,
+                timeout: 8000,
                 headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                    'Accept': 'application/json',
+                    'User-Agent': req.headers['user-agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'application/json, text/plain, */*',
                     'Referer': 'https://www.sofascore.com/',
-                    'Origin': 'https://www.sofascore.com'
+                    'Origin': 'https://www.sofascore.com',
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
                 }
             });
             return res.status(200).json(response.data);
         } catch (e) {
             console.error(`[Vercel Proxy] Direct JSON Error: ${e.message}`);
+            // If it's a 4xx or 5xx from the target, forward its status
+            if (e.response) {
+                return res.status(e.response.status).json({
+                    error: 'Target API error',
+                    status: e.response.status,
+                    message: e.message
+                });
+            }
             return res.status(502).json({ error: 'Direct fetch failed', message: e.message });
         }
     }
