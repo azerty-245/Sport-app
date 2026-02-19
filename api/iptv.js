@@ -81,13 +81,19 @@ module.exports = async (req, res) => {
         return res.send(Buffer.from(response.data));
 
     } catch (error) {
+        res.setHeader('X-Proxy-Target', targetUrl);
+        res.setHeader('X-Proxy-Error', error.message || 'Unknown');
+
         if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-            return res.status(504).json({ error: 'VM proxy timeout', code: 'TIMEOUT' });
+            res.setHeader('X-Proxy-Code', 'TIMEOUT');
+            return res.status(504).json({ error: 'VM proxy timeout', code: 'TIMEOUT', target: targetUrl });
         }
         if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
-            return res.status(502).json({ error: 'VM unreachable', code: 'VM_DOWN' });
+            res.setHeader('X-Proxy-Code', 'DOWN');
+            return res.status(502).json({ error: 'VM unreachable', code: 'VM_DOWN', target: targetUrl });
         }
         console.error('[Vercel Proxy] Error:', error.message);
-        return res.status(500).json({ error: error.message });
+        res.setHeader('X-Proxy-Code', 'ERROR');
+        return res.status(500).json({ error: error.message, target: targetUrl });
     }
 };
