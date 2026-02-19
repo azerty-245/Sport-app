@@ -1,46 +1,89 @@
 # 📝 Résumé du Projet Eben
 
 ## 🎯 Objectif
-Créer une plateforme digitale multimédia polyvalente permettant de suivre l'actualité, de gérer des flux d'informations et d'accéder à des contenus multimédias intégrés sur n'importe quel écran.
+Créer une plateforme digitale multimédia polyvalente permettant de suivre l'actualité sportive en direct, de gérer des flux IPTV MPEG-TS complexes sur le web, et d'assurer une expérience utilisateur fluide sans coupures (anti-jitter).
 
-## 🏗️ Architecture & Choix Techniques
+---
 
-### 1. Le Défi de la Persistance (Timeout 10s & HTTPS)
-Le défi principal a été de maintenir des flux IPTV (MPEG-TS) sur le Web, car Vercel Serverless coupe les connexions après 10 secondes et bloque les flux HTTP non sécurisés.
-**Solution :** Architecture **Dual Proxy & Cloudflare Tunnel**.
-- **Tunnel Sécurisé** : Exposition de la VM Oracle via Cloudflare (HTTPS) pour satisfaire les navigateurs et assurer des connexions illimitées.
-- **Cache Intelligent** : Playlist stockée 7 jours avec Failover automatique de source.
-- **Anti-Jitter** : FFmpeg tuné pour supprimer les micro-coupures et sauts d'image.
+## 🏗️ Architecture Technique (Triple-Proxy)
 
-### 2. Une seule base de code (Expo)
-- **Expo + React Native Web** pour une portabilité maximale.
-- **EAS Build** pour le déploiement mobile.
+Le projet utilise une architecture unique de "Triple-Proxy" pour contourner les limitations de Vercel (timeout 10s) et les blocages IP des fournisseurs.
 
-### 3. Mises à jour OTA (Over-The-Air)
-- Déploiement instantané des corrections via `eas update`.
+### 1. Structure Globale du Projet
 
-## 🚀 État Actuel
-- **Web** : 🟢 Déployé sur Vercel avec Tunnel Sécurisé actif.
-- **Android** : 🟢 APK généré avec publicités Start.io intégrées.
-- **Sécurité** : 🟢 HTTPS de bout en bout et isolation Zero-Exposure.
-- **Légal** : 🟢 Politique de confidentialité et licence Eben à jour.
+````mermaid
+graph TD
+    A[Client Expo App / Web] -->|Requêtes API| B[Vercel Serverless api/iptv.js]
+    B -->|Bypass Blocage| C[SofaScore API]
+    B -->|Routage Intelligent| D[Oracle VM Cloudflare Tunnel]
+    D -->|Streaming / Playlist| E[IPTV Provider]
+    
+    subgraph "Oracle VM (Ubuntu)"
+    D1[Cloudflare Tunnel Endpoint] --> D2[Express Proxy proxy.js]
+    D2 --> D3[FFmpeg Engine Jitter-Fix]
+    end
+````
 
-## 🛠️ Connexion & Mise à jour (Oracle VM)
+### 2. Organisation des Fichiers
 
-### 🔌 Connexion SSH
-Pour se connecter à la VM Oracle :
+#### **📂 Racine / (Local Repo)**
+- **`app/`** : Code source React Native / Expo. Contient les onglets `Streaming`, `Leagues`, `News`.
+- **`api/`** : Backend intelligent sur Vercel. Le fichier `iptv.js` gère le routage dynamique vers le tunnel Cloudflare.
+- **`services/`** : Logique frontend.
+    - `iptv.js` : Découverte automatique du tunnel, filtrage des chaînes sportives françaises, persistance locale (AsyncStorage).
+    - `footballAPIs.js` : Accès aux scores via le proxy Vercel pour éviter les bans IP.
+- **`server/`** : Code déployé sur la VM Oracle.
+    - `proxy.js` : Serveur Express qui filtre la playlist (9MB -> 71KB) et transforme les flux MPEG-TS difficiles en flux HTTP stables.
+    - `start-tunnel.sh` : Script Bash qui lance le tunnel Cloudflare et pousse l'URL vers GitHub via le "GitHub Bridge".
+    - `update.sh` : Script d'automatisation de déploiement (git pull + restart pm2).
+
+#### **📂 Oracle VM — `/home/ubuntu/sport-app-sync/`**
+- **`proxy.js`** : Fichier principal exécuté par PM2.
+- **`tunnel_url.txt`** : Contient l'URL dynamique du tunnel Cloudflare (ex: `https://...trycloudflare.com`).
+- **`.env`** : Variables d'environnement critiques (URL IPTV, Clé API, GitHub Token).
+
+---
+
+## 🛠️ Oracle VM — Connexion & Maintenance
+
+| Paramètre | Valeur |
+|-----------|--------|
+| **IP Publique** | `152.70.45.91` (Note: Souvent bloquée, utiliser le tunnel) |
+| **Utilisateur** | `ubuntu` |
+| **Tunnel Actuel** | `https://determined-satisfaction-richard-seeks.trycloudflare.com` |
+| **Clé SSH** | `C:\Users\USER\Downloads\ssh-key-2026-02-14.key` |
+| **Outil Process** | PM2 (`streaming-proxy`) |
+
+### 🔄 Cycle de Mise à Jour (Recommandé)
 ```bash
-ssh -i "C:\Users\USER\Downloads\ssh-key-2026-02-14.key" ubuntu@152.70.45.91
-```
+# 1. En local (après modification du code dans /server)
+git add -f server/proxy.js
+git commit -m "MAJ Proxy"
+git push origin master
 
-### 🔄 Procédure de Mise à jour
-Une fois connecté, exécutez ces commandes pour synchroniser le code et redémarrer le proxy :
-```bash
-cd ~/sport-app-sync/
-git pull origin master
-cp server/proxy.js .
-pm2 restart streaming-proxy
+# 2. Déploiement VM (One-liner)
+ssh -i "C:\[CHEMIN_VERS_CLE]" ubuntu@152.70.45.91 "cd ~/sport-app-sync && ./update.sh"
 ```
 
 ---
-*Dernière mise à jour : 19/02/2026 - Version 1.3.1 (Déploiement VM Automatisé)*
+
+## 🐛 Historique des Problèmes & Solutions
+
+| # | Problème Rencontré | Cause Technique | Solution Appliquée |
+|---|-------------------|-------------------|--------------------|
+| **1** | **Gateway Timeout 504** | La playlist originale fait 9MB. Vercel a un timeout de 10s. Le fetch prenait 14s. | **Filtrage Intelligent** : La VM Oracle prétraite la playlist pour ne garder que ~300 chaînes sportives/FR (**71KB**). |
+| **2** | **Blocage IP (Oracle)** | Oracle est souvent listé comme "Datacenter" et bloqué par les fournisseurs ou SofaScore. | **Proxy Direct Vercel** : Les scores passent directement par l'IP résidentielle de Vercel. Les streams passent par **Cloudflare Tunnel**. |
+| **3** | **Mixed Content (SSL)** | Les navigateurs bloquent les flux HTTP (`http://152...`) sur un site HTTPS. | **Cloudflare Tunnel** : Fournit une URL HTTPS (`https://...trycloudflare.com`) sécurisée de bout en bout. |
+| **4** | **URL Tunnel Dynamique** | L'URL Cloudflare change à chaque reboot de la VM. | **GitHub Bridge** : La VM écrit son URL dans `tunnel_url.txt` et la pousse sur GitHub. L'app la récupère automatiquement. |
+| **5** | **Micro-Coupures (Jitter)** | Les flux MPEG-TS sont instables sur le web. | **Engine FFmpeg** : On utilise FFmpeg sur la VM avec un buffer optimisé pour lisser le flux avant de l'envoyer au client. |
+| **6** | **Playlist Vide (0 bytes)** | Double-encodage des paramètres d'URL lors du passage par le proxy Vercel. | **Path Extraction Nettoyé** : Réécriture du proxy pour utiliser des URLs "propres" sans double-traitement du query. |
+| **7** | **Cold Start Slowness** | Vercel timeout quand la VM doit rafraîchir son cache. | **Stale-While-Revalidate** : La VM renvoie immédiatement le cache "stale" tout en rafraîchissant en arrière-plan. |
+
+---
+
+## 📈 Prochaines Étapes
+- [ ] Optimisation de la latence du tunnel.
+- [ ] Ajout de redondance (plusieurs tunnels).
+- [ ] Dashboard de monitoring de l'état de la plateforme sur l'onglet `Streaming`.
+
+*Dernière mise à jour : 19/02/2026 - Version 1.5.0 (Triple-Proxy Architecture & GitHub Bridge Sync)*

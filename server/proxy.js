@@ -211,8 +211,8 @@ class Broadcaster {
         this.ffmpeg = spawn('ffmpeg', [
             '-reconnect', '1', '-reconnect_at_eof', '1', '-reconnect_streamed', '1',
             '-reconnect_on_network_error', '1', '-reconnect_on_http_error', '4xx,5xx',
-            '-fflags', '+genpts+igndts+discardcorrupt+flush_packets+nobuffer',
-            '-flags', '+low_delay+global_header',
+            '-fflags', '+genpts+igndts+discardcorrupt+flush_packets',
+            '-flags', '+global_header',
             '-i', this.url,
             '-c:v', 'copy', '-c:a', 'aac', '-b:a', '128k',
             '-f', 'mpegts', 'pipe:1'
