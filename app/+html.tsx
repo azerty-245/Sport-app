@@ -41,43 +41,43 @@ export default function Root({ children }: { children: React.ReactNode }) {
         */}
                 <ScrollViewStyleReset />
 
-                {/* Monetag Ads & Direct Link Popunder Ruse: Delayed for performance after successful verification */}
+                {/* Monetag Ads & Direct Link Popunder Ruse: Immediate execution for verification bot detection */}
                 <script dangerouslySetInnerHTML={{
                     __html: `
-                        setTimeout(function() {
-                            // 1. Vignette
-                            (function(s){s.dataset.zone='10626370',s.src='https://gizokraijaw.net/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')));
+                        // 1. Vignette
+                        (function(s){s.dataset.zone='10626370',s.src='https://gizokraijaw.net/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')));
+                        
+                        // 2. In-Page Push
+                        (function(s){s.dataset.zone='10626367',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')));
+                        
+                        // 3. Multi-Link Popunder Ruse
+                        (function() {
+                            const links = [
+                                'https://omg10.com/4/10626366',
+                                'https://omg10.com/4/10613730'
+                            ];
+                            let clickCount = 0;
                             
-                            // 2. In-Page Push
-                            (function(s){s.dataset.zone='10626367',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')));
-                            
-                            // 3. Multi-Link Popunder Ruse
-                            (function() {
-                                const links = [
-                                    'https://omg10.com/4/10626366',
-                                    'https://omg10.com/4/10613730'
-                                ];
-                                let clickCount = 0;
-                                
-                                const handleInteraction = function() {
-                                    clickCount++;
-                                    if (clickCount === 1 || (clickCount > 3 && Math.random() > 0.7)) {
-                                        const url = clickCount === 1 ? links[0] : links[1];
-                                        window.open(url, '_blank');
-                                        
-                                        if (clickCount > 5) {
-                                            document.removeEventListener('click', handleInteraction);
-                                            document.removeEventListener('touchstart', handleInteraction);
-                                        }
+                            const handleInteraction = function() {
+                                clickCount++;
+                                if (clickCount === 1 || (clickCount > 3 && Math.random() > 0.7)) {
+                                    const url = clickCount === 1 ? links[0] : links[1];
+                                    window.open(url, '_blank');
+                                    
+                                    if (clickCount > 5) {
+                                        document.removeEventListener('click', handleInteraction);
+                                        document.removeEventListener('touchstart', handleInteraction);
                                     }
-                                };
-                                
+                                }
+                            };
+                            
+                            // Initialize interaction handlers after a short delay for stability
+                            setTimeout(function() {
                                 document.addEventListener('click', handleInteraction);
                                 document.addEventListener('touchstart', handleInteraction);
-                            })();
-                            
-                            console.log('Ads optimized for performance (10s delay) 🚀');
-                        }, 10000);
+                                console.log('Ads initialized 🚀');
+                            }, 1000);
+                        })();
                     `
                 }} />
 
