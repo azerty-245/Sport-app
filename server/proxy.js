@@ -77,7 +77,7 @@ const fetchPlaylist = async () => {
         return false;
     }
 
-    console.log(`[Proxy] 🔄 Refreshing Playlist (Async)...`);
+    console.log(`[Proxy] 🔄 Refreshing Playlist (Filtered Mode)...`);
     const start = Date.now();
 
     for (let i = 0; i < iptvUrls.length; i++) {
@@ -89,20 +89,37 @@ const fetchPlaylist = async () => {
             });
 
             const lines = response.data.split('\n');
-            const rewrittenLines = lines.map(line => {
-                const trimmed = line.trim();
-                if (trimmed.startsWith('http')) {
-                    const encodedUrl = Buffer.from(trimmed).toString('base64');
-                    return `/stream?id=${encodedUrl}&key=${API_KEY}`;
-                }
-                return line;
-            });
+            const filteredLines = ['#EXTM3U'];
+            let currentExtInfo = null;
 
-            const finalOutput = rewrittenLines.join('\n');
+            for (let j = 0; j < lines.length; j++) {
+                const line = lines[j].trim();
+                if (line.startsWith('#EXTINF:')) {
+                    currentExtInfo = line;
+                } else if (line.startsWith('http') && currentExtInfo) {
+                    const infoUpper = currentExtInfo.toUpperCase();
+
+                    // --- REPLICATE CLIENT FILTERING LOGIC ---
+                    const isFrench = infoUpper.includes('FR:') || infoUpper.includes('FR |') || infoUpper.includes('FRANCE') || infoUpper.includes('FRENCH') || infoUpper.includes('FRANÇAIS');
+                    const isSportGeneric = infoUpper.includes('SPORT') || infoUpper.includes('FOOT') || infoUpper.includes('SOCCER') || infoUpper.includes('RUGBY') || infoUpper.includes('TENNIS') || infoUpper.includes('BASKET') || infoUpper.includes('UFC') || infoUpper.includes('WWE');
+                    const isPremiumBrand = infoUpper.includes('CANAL+') || infoUpper.includes('BEIN') || infoUpper.includes('RMC SPORT') || infoUpper.includes('EUROSPORT') || infoUpper.includes('DAZN') || infoUpper.includes('PRIME VIDEO') || infoUpper.includes('EQUIPE') || infoUpper.includes('SKY SPORT');
+                    const isMainFrench = infoUpper.includes('TF1') || infoUpper.includes('M6') || infoUpper.includes('FRANCE 2') || infoUpper.includes('FRANCE 3');
+
+                    if ((isFrench && (isSportGeneric || isPremiumBrand)) || (isPremiumBrand && isSportGeneric) || isMainFrench) {
+                        // Keep this channel
+                        filteredLines.push(currentExtInfo);
+                        const encodedUrl = Buffer.from(line).toString('base64');
+                        filteredLines.push(`/stream?id=${encodedUrl}&key=${API_KEY}`);
+                    }
+                    currentExtInfo = null;
+                }
+            }
+
+            const finalOutput = filteredLines.join('\n');
             playlistCache.data = finalOutput;
             playlistCache.timestamp = Date.now();
             playlistCache.configHash = process.env.IPTV_URL;
-            console.log(`[Proxy] ✅ Playlist Updated! Size: ${(finalOutput.length / 1024).toFixed(2)} KB. Time: ${Date.now() - start}ms`);
+            console.log(`[Proxy] ✅ Playlist Updated! (Filtered) Size: ${(finalOutput.length / 1024).toFixed(2)} KB. Time: ${Date.now() - start}ms`);
             return true;
         } catch (error) {
             console.error(`[Proxy] ⚠️ Source ${i + 1} failed: ${error.message}`);
