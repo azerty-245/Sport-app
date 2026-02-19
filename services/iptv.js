@@ -10,15 +10,18 @@ const CACHE_DURATION = 1000 * 60 * 60 * 12; // 12 hours
 // 1. METADATA_PROXY: Use HTTPS (Vercel) to avoid "Mixed Content" blocks on the UI.
 // 2. STREAM_PROXY: Use direct IP (Oracle) for persistent MPEG-TS streaming (avoid Vercel 10s timeout).
 const getMetadataProxy = () => {
+    // Priority 1: Check if we are on web and have a Vercel-like host
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
         const host = window.location.hostname;
-        if (host.includes('vercel.app')) {
-            return `https://${host}/api/iptv`;
-        }
-        return `${window.location.origin}/api/iptv`;
+        if (host.includes('vercel.app')) return `https://${host}/api/iptv`;
+        if (host !== 'localhost' && !host.includes('127.0.0.1')) return `${window.location.origin}/api/iptv`;
     }
-    // Default to the original VM IP as fallback/primary
-    return process.env.EXPO_PUBLIC_PROXY_URL || 'http://152.70.45.91:3005';
+
+    // Priority 2: Use hardcoded Vercel fallback for APK/EXE to bypass Oracle IP blocks
+    // This ensures consistency across all builds.
+    const VERCEL_FALLBACK = 'https://eben-digi.vercel.app/api/iptv';
+
+    return process.env.EXPO_PUBLIC_PROXY_URL || VERCEL_FALLBACK;
 };
 
 const TUNNEL_PERSIST_KEY = 'vm_tunnel_url_v1';
