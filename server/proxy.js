@@ -9,15 +9,19 @@ const compression = require('compression');
 
 const app = express();
 
-// --- GLOBAL MIDDLEWARE ---
-app.use(compression());
-app.use(cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'X-API-Key', 'Range'],
-    exposedHeaders: ['Content-Length', 'Content-Range', 'Access-Control-Allow-Origin']
-}));
-app.options('*', cors());
+// --- ULTRA-PERMISSIVE CORS MIDDLEWARE (Fix for Web Streaming) ---
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, HEAD');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-API-Key, Range, Authorization');
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Range, X-Chunk-Size');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    next();
+});
 
 const PORT = 3005;
 const API_KEY = process.env.API_KEY || 'sport-zone-secure-v1';
