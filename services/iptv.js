@@ -71,8 +71,8 @@ export const getIPTVChannels = async () => {
             }
         }
 
-        // Secure fetch: We call /playlist and the proxy adds the secret IPTV_URL on the server side.
-        const playlistUrl = `${PROXY_URL}/playlist`;
+        // Secure fetch: Use the discovered STREAM_PROXY_URL (Tunnel) to avoid Vercel timeouts for large payloads (9MB).
+        const playlistUrl = `${STREAM_PROXY_URL}/playlist`;
 
         console.log('[IPTV] Fetching IPTV playlist securely via Proxy...');
         const response = await fetch(playlistUrl, {
