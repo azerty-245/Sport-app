@@ -27,12 +27,11 @@ export let STREAM_PROXY_URL = process.env.EXPO_PUBLIC_PROXY_URL || 'http://152.7
 
 // Dynamic Tunnel Discovery:
 // Fetch the current secure tunnel URL from the VM.
-// Now handles potential initialization delays.
 export const discoverTunnel = async () => {
     try {
         console.log('[IPTV] Discovering secure tunnel...');
-        // We use the direct PROXY_URL (Vercel) to reach the VM
-        const response = await fetch(`${getMetadataProxy()}/tunnel-info`);
+        const metadataProxy = getMetadataProxy();
+        const response = await fetch(`${metadataProxy}/tunnel-info`);
         if (!response.ok) throw new Error('Tunnel info unavailable');
 
         const data = await response.json();
@@ -42,7 +41,11 @@ export const discoverTunnel = async () => {
             return STREAM_PROXY_URL;
         }
     } catch (e) {
-        console.warn('[IPTV] Tunnel discovery failed, using fallback:', STREAM_PROXY_URL);
+        console.warn('[IPTV] Tunnel discovery failed. Staying on Metadata Proxy to avoid Mixed Content.');
+        // If we are on web/HTTPS, never fallback to raw HTTP IP
+        if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.protocol === 'https:') {
+            STREAM_PROXY_URL = getMetadataProxy();
+        }
         return STREAM_PROXY_URL;
     }
 };
