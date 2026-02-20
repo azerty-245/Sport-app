@@ -306,11 +306,13 @@ class Broadcaster {
 
     addClient(res) {
         this.clients.add(res);
-        res.setHeader('Content-Type', 'video/mp2t');
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Cache-Control', 'no-cache, no-store');
-        res.setHeader('Connection', 'keep-alive');
-        res.flushHeaders(); // Send headers immediately so client MediaSource doesn't timeout
+        if (!res.headersSent) {
+            res.setHeader('Content-Type', 'video/mp2t');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.setHeader('Cache-Control', 'no-cache, no-store');
+            res.setHeader('Connection', 'keep-alive');
+            res.flushHeaders(); // Send headers immediately so client MediaSource doesn't timeout
+        }
     }
 
     removeClient(res) {
