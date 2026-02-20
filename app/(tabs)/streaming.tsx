@@ -336,6 +336,31 @@ export default function StreamingScreen() {
                   hideStatus();
                 });
 
+                // --- DIAGNOSTICS: Monitor network & buffer ---
+                if (mpegts.Events.STATISTICS_INFO) {
+                  currentPlayer.on(mpegts.Events.STATISTICS_INFO, function(data) {
+                    if (data.speed > 0) {
+                      console.log('[DIAGNOSTIC] 🌐 Download Speed: ' + data.speed.toFixed(1) + ' KB/s');
+                    }
+                  });
+                }
+
+                setInterval(function() {
+                  if (video.paused || !video.buffered.length) return;
+                  var end = video.buffered.end(video.buffered.length - 1);
+                  var bufferLeft = end - video.currentTime;
+                  
+                  if (bufferLeft < 0.5) {
+                    console.warn('[DIAGNOSTIC] 📉 Buffer CRITICAL: ' + bufferLeft.toFixed(2) + 's (Stall expected)');
+                  } else if (bufferLeft < 3.0) {
+                    console.log('[DIAGNOSTIC] ⚠️ Buffer LOW: ' + bufferLeft.toFixed(2) + 's');
+                  } else {
+                     // Uncomment to see healthy buffer logs
+                     // console.log('[DIAGNOSTIC] 🟢 Buffer OK: ' + bufferLeft.toFixed(2) + 's');
+                  }
+                }, 1000);
+                // ---------------------------------------------
+
                 // Error handling with retry
                 currentPlayer.on(mpegts.Events.ERROR, function(errType, errDetail) {
                   log('⚠️ Erreur flux: ' + errType);
