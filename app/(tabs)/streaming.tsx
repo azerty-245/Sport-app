@@ -304,18 +304,18 @@ export default function StreamingScreen() {
                 }, {
                   enableWorker: true,
                   lazyLoad: false,
-                  liveBufferLatencyChasing: false,
+                  liveBufferLatencyChasing: true, // Enable chasing to keep latency low
                   liveSync: true,
-                  liveSyncTarget: 15.0,
-                  liveBufferLatencyMaxLatency: 45.0,
-                  liveBufferLatencyMinLatency: 10.0,
+                  liveSyncTarget: 3.0,     // Aggressive latency target
+                  liveBufferLatencyMaxLatency: 10.0,
+                  liveBufferLatencyMinLatency: 3.0,
                   enableStashBuffer: true,
-                  stashInitialSize: 4 * 1024 * 1024,
+                  stashInitialSize: 384 * 1024, // Back to default (4MB was causing allocation errors)
                   autoCleanupSourceBuffer: true,
-                  autoCleanupMaxBackwardDuration: 60,
-                  autoCleanupMinBackwardDuration: 30,
+                  autoCleanupMaxBackwardDuration: 30,
+                  autoCleanupMinBackwardDuration: 15,
                   fixAudioTimestampGap: true,
-                  lazyLoadMaxDuration: 60,
+                  lazyLoadMaxDuration: 30,
                 });
 
                 currentPlayer.attachMediaElement(video);
