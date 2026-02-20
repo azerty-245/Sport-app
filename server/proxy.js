@@ -267,12 +267,26 @@ class Broadcaster {
             }
         });
 
+        const startTime = Date.now();
         this.ffmpeg.on('close', (code) => {
             clearTimeout(this.dataTimeout);
+            const duration = Date.now() - startTime;
+
             if (code !== 0 && !this.useFallback) {
-                console.warn(`[Proxy] ⚠️ FFmpeg exited with code ${code}`);
+                console.warn(`[Proxy] ⚠️ FFmpeg exited with code ${code} after ${duration}ms`);
+
+                // If FFmpeg fails immediately (< 2000ms), it's likely a bad input causing a crash loop.
+                // Switch to direct pipe immediately.
+                if (duration < 2000) {
+                    console.warn(`[Proxy] 🚨 Immediate FFmpeg failure detected. Switching to Direct Pipe.`);
+                    this.useFallback = true;
+                    this.startDirectPipe();
+                    return;
+                }
             }
+
             if (this.clients.size > 0 && !this.useFallback) {
+                console.log(`[Proxy] 🔄 Restarting FFmpeg stream...`);
                 setTimeout(() => this.startStream(), 2000);
             } else if (!this.useFallback) {
                 this.stopStream();
