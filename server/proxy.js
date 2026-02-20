@@ -243,13 +243,25 @@ class Broadcaster {
             }
             this.status = 'streaming';
             for (const client of this.clients) {
-                try { client.write(chunk); } catch (e) { this.clients.delete(client); }
+                try {
+                    const ready = client.write(chunk);
+                    if (!ready) {
+                        console.warn(`[Proxy] 🐌 Client Congestion (Backpressure) for ${this.url.substring(this.url.lastIndexOf('/') + 1)}`);
+                    }
+                } catch (e) { this.clients.delete(client); }
             }
         });
 
         this.ffmpeg.stderr.on('data', (data) => {
             // Log FFmpeg errors for debugging (only first 200 chars)
             const msg = data.toString().trim();
+
+            // Check for speed (Source health)
+            const speedMatch = msg.match(/speed=\s*(\d+\.?\d*)x/);
+            if (speedMatch && parseFloat(speedMatch[1]) < 0.9) {
+                console.warn(`[Proxy] 🐢 Slow Source: ${speedMatch[0]} for ${this.url.substring(this.url.lastIndexOf('/') + 1)}`);
+            }
+
             if (msg.length > 0 && !msg.startsWith('frame=') && !msg.startsWith('size=')) {
                 console.log(`[FFmpeg] ${msg.substring(0, 200)}`);
             }
