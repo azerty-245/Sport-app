@@ -427,8 +427,6 @@ app.get('/hls', validateApiKey, async (req, res) => {
         playlistPath
     ]);
 
-    let ffmpegReady = false;
-
     ffmpeg.stderr.on('data', (data) => {
         const msg = data.toString().trim();
         if (msg.length > 0 && !msg.startsWith('frame=') && !msg.startsWith('size=')) {
