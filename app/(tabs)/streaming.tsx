@@ -304,30 +304,44 @@ export default function StreamingScreen() {
                 }, {
                   enableWorker: true,
                   lazyLoad: false,
-                  liveBufferLatencyChasing: true, // Enable chasing to keep latency low
-                  liveSync: true,
-                  liveSyncTarget: 3.0,     // Aggressive latency target
-                  liveBufferLatencyMaxLatency: 10.0,
-                  liveBufferLatencyMinLatency: 3.0,
+                  liveBufferLatencyChasing: false, // Disable chasing — let buffer grow
+                  liveSync: false,
+                  liveBufferLatencyMaxLatency: 30.0, // Allow up to 30s buffer
+                  liveBufferLatencyMinLatency: 5.0,  // Keep at least 5s
                   enableStashBuffer: true,
-                  stashInitialSize: 384 * 1024, // Back to default (4MB was causing allocation errors)
+                  stashInitialSize: 1024 * 1024, // 1MB stash (safe, absorbs bursts)
                   autoCleanupSourceBuffer: true,
                   autoCleanupMaxBackwardDuration: 30,
                   autoCleanupMinBackwardDuration: 15,
                   fixAudioTimestampGap: true,
-                  lazyLoadMaxDuration: 30,
+                  lazyLoadMaxDuration: 60,
                 });
 
                 currentPlayer.attachMediaElement(video);
                 currentPlayer.load();
 
-                // Only attempt play after we have metadata (avoids Autoplay bloqué + premature endOfStream)
+                // Wait until we have at least 3s of buffer before starting playback
+                var playStarted = false;
+                function tryPlay() {
+                  if (playStarted) return;
+                  if (video.buffered.length > 0) {
+                    var buffered = video.buffered.end(0) - video.buffered.start(0);
+                    if (buffered >= 3.0) {
+                      playStarted = true;
+                      log('▶️ Buffer OK (' + buffered.toFixed(1) + 's) — Démarrage...');
+                      video.play().catch(function(e) {
+                        log('⚠️ Cliquez sur la vidéo pour lancer la lecture');
+                      });
+                      return;
+                    }
+                    log('⏳ Buffering... ' + buffered.toFixed(1) + 's / 3.0s');
+                  }
+                  setTimeout(tryPlay, 500);
+                }
+                // Start checking buffer after canplay fires
                 video.addEventListener('canplay', function onCanPlay() {
                   video.removeEventListener('canplay', onCanPlay);
-                  log('▶️ Démarrage de la lecture...');
-                  video.play().catch(function(e) {
-                    log('⚠️ Cliquez sur la vidéo pour lancer la lecture');
-                  });
+                  tryPlay();
                 });
 
                 video.addEventListener('playing', function onPlaying() {
