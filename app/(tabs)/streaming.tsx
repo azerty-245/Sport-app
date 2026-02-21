@@ -285,12 +285,75 @@ export default function StreamingScreen() {
                 video.load();
               }
 
+              // --- HLS FALLBACK for Safari/iOS ---
+              function startHlsPlayer() {
+                log('📡 Demande de flux HLS au serveur...');
+                // Build HLS URL from the MPEG-TS stream URL  
+                var hlsUrl = src.replace('/stream?', '/hls?');
+                // Extract the tunnel base URL for segment fetching
+                var baseUrl = src.substring(0, src.indexOf('/stream'));
+                
+                fetch(hlsUrl)
+                  .then(function(response) {
+                    if (!response.ok) throw new Error('HLS HTTP ' + response.status);
+                    return response.json();
+                  })
+                  .then(function(data) {
+                    if (!data.session) throw new Error('No HLS session');
+                    log('📋 Session HLS créée — Chargement...');
+                    
+                    // Build the playlist URL using the same tunnel base 
+                    var playlistUrl = baseUrl + '/hls-data/' + data.session + '/live.m3u8?key=' + src.match(/key=([^&]*)/)[1];
+                    
+                    // Safari can play HLS natively
+                    if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                      video.src = playlistUrl;
+                      video.addEventListener('loadedmetadata', function onMeta() {
+                        video.removeEventListener('loadedmetadata', onMeta);
+                        log('▶️ Démarrage HLS...');
+                        video.play().catch(function(e) {
+                          log('⚠️ Cliquez sur la vidéo pour lancer la lecture');
+                        });
+                      });
+                      video.addEventListener('playing', function onHlsPlaying() {
+                        video.removeEventListener('playing', onHlsPlaying);
+                        log('▶️ Lecture HLS en cours');
+                        hideStatus();
+                      });
+                      video.addEventListener('error', function onHlsErr() {
+                        video.removeEventListener('error', onHlsErr);
+                        if (retryCount < MAX_RETRIES) {
+                          retryCount++;
+                          log('🔄 Retry HLS dans 3s...');
+                          setTimeout(startHlsPlayer, 3000);
+                        } else {
+                          log('❌ Échec lecture HLS');
+                        }
+                      });
+                    } else {
+                      log('❌ Votre navigateur ne supporte ni MSE ni HLS');
+                    }
+                  })
+                  .catch(function(err) {
+                    log('⚠️ Erreur HLS: ' + err.message);
+                    if (retryCount < MAX_RETRIES) {
+                      retryCount++;
+                      log('🔄 Retry dans 3s...');
+                      setTimeout(startHlsPlayer, 3000);
+                    } else {
+                      log('❌ Impossible de démarrer le flux HLS');
+                    }
+                  });
+              }
+
               function startPlayer() {
                 destroyPlayer();
                 isPlaying = false;
 
-                if (!mpegts.isSupported()) {
-                  log('❌ Votre navigateur ne supporte pas MPEG-TS');
+                // Safari/iOS: no MSE → use HLS fallback
+                if (typeof mpegts === 'undefined' || !mpegts.isSupported()) {
+                  log('📱 Safari détecté — Mode HLS...');
+                  startHlsPlayer();
                   return;
                 }
 
