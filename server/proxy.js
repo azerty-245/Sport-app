@@ -35,7 +35,7 @@ let playlistCache = {
 };
 let pendingFetch = null; // Prevents duplicate concurrent fetches
 
-const REFRESH_INTERVAL = 1000 * 60 * 15; // 15 minutes
+const REFRESH_INTERVAL = 1000 * 60 * 60 * 6; // 6 hours
 const SOFT_REFRESH_INTERVAL = 1000 * 60 * 5; // 5 minutes soft check
 const MAX_UNIQUE_CHANNELS = 8;
 
