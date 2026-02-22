@@ -1,8 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-const CACHE_KEY = 'iptv_channels_cache_v5'; // v5: really force refresh
-const CACHE_DURATION = 1000 * 60 * 60 * 12; // 12 hours
+const CACHE_KEY = 'iptv_channels_cache_v6'; // v6: force refresh for new filtering
+const CACHE_DURATION = 1000 * 60 * 60 * 2; // Reduce to 2 hours
 
 // Expo inlines EXPO_PUBLIC_* at build time
 // On Web, checking window.location.origin is safer for Workers which need absolute URLs
