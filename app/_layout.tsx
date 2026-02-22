@@ -3,6 +3,7 @@ import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Updates from 'expo-updates';
 import { useEffect } from 'react';
 import { LogBox, StyleSheet, Text, View } from 'react-native';
 import 'react-native-reanimated';
@@ -55,6 +56,21 @@ export default function RootLayout() {
   useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync();
+      // Check for updates on startup (EAS Update)
+      if (!__DEV__) {
+        const checkUpdates = async () => {
+          try {
+            const update = await Updates.checkForUpdateAsync();
+            if (update.isAvailable) {
+              await Updates.fetchUpdateAsync();
+              await Updates.reloadAsync();
+            }
+          } catch (e) {
+            console.warn('Update check failed:', e);
+          }
+        };
+        checkUpdates();
+      }
     }
   }, [loaded]);
 
