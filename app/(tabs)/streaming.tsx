@@ -183,10 +183,35 @@ export default function StreamingScreen() {
                 value: `<html>
                 <head>
                     <meta name="viewport" content="width=device-width, initial-scale=1">
-                    <style>body { margin: 0; background: #000; display: flex; align-items: center; justify-content: center; height: 100vh; }</style>
+                    <style>
+                        body { 
+                            margin: 0; 
+                            background: #000; 
+                            display: flex; 
+                            flex-direction: column;
+                            align-items: center; 
+                            justify-content: flex-start; /* Start from top */
+                            height: 100vh;
+                            padding-top: 40px; /* Avoid header overlap */
+                            overflow: hidden;
+                        }
+                        .container {
+                            width: 100%;
+                            max-width: 800px;
+                            /* Hide the ScoreBat footer (embed code/links) */
+                            max-height: 500px; 
+                            overflow: hidden;
+                            border-radius: 8px;
+                        }
+                        iframe {
+                            width: 100%;
+                            height: 400px; /* Fixed height for highlights */
+                            border: 0;
+                        }
+                    </style>
                 </head>
                 <body>
-                    <div style="width: 100%; font-size: 0;">${url}</div>
+                    <div class="container">${url}</div>
                 </body>
             </html>`,
                 url: selectedStream.originalUrl || url
@@ -200,10 +225,20 @@ export default function StreamingScreen() {
           <head>
             <meta name="viewport" content="width=device-width,initial-scale=1">
             <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-            <style>
-                body { margin:0; background:#000; overflow:hidden; }
-                #video { border:0; width:100%; height:100vh; background:#000; }
-            </style>
+                <style>
+                    body { 
+                        margin: 0; 
+                        background: #000; 
+                        overflow: hidden; 
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: flex-start;
+                        height: 100vh;
+                        padding-top: 40px; /* Avoid header overlap */
+                    }
+                    #video { border: 0; width: 100%; max-height: calc(100vh - 40px); background: #000; }
+                </style>
           </head>
           <body>
             <video id="video" controls autoplay playsinline></video>
@@ -233,11 +268,21 @@ export default function StreamingScreen() {
           <head>
             <meta name="viewport" content="width=device-width,initial-scale=1">
             <script src="https://cdn.jsdelivr.net/npm/mpegts.js@1.7.3/dist/mpegts.js"><\/script>
-            <style>
-                body { margin:0; background:#000; overflow:hidden; display:flex; align-items:center; justify-content:center; height:100vh; }
-                #video { border:0; width:100%; height:100vh; background:#000; }
-                #status { position:fixed; top:10px; left:10px; color:#aaa; font-family:sans-serif; font-size:13px; z-index:10; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
-            </style>
+                <style>
+                    body { 
+                        margin: 0; 
+                        background: #000; 
+                        overflow: hidden; 
+                        display: flex; 
+                        flex-direction: column;
+                        align-items: center; 
+                        justify-content: flex-start; 
+                        height: 100vh; 
+                        padding-top: 40px; /* Avoid header overlap */
+                    }
+                    #video { border: 0; width: 100%; max-height: calc(100vh - 40px); background: #000; }
+                    #status { position: fixed; top: 50px; left: 10px; color: #aaa; font-family: sans-serif; font-size: 13px; z-index: 10; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+                </style>
           </head>
           <body>
             <div id="status">⏳ Connexion au flux...</div>
@@ -791,6 +836,7 @@ export default function StreamingScreen() {
                                 domStorageEnabled
                                 originWhitelist={['*']}
                                 allowsFullscreenVideo
+                                allowsInlineMediaPlayback
                                 mediaPlaybackRequiresUserAction={false}
                             />
                         );

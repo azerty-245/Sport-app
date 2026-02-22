@@ -112,12 +112,20 @@ const _doFetchPlaylist = async () => {
                     const infoUpper = currentExtInfo.toUpperCase();
 
                     // --- REPLICATE CLIENT FILTERING LOGIC ---
-                    const isFrench = infoUpper.includes('FR:') || infoUpper.includes('FR |') || infoUpper.includes('FRANCE') || infoUpper.includes('FRENCH') || infoUpper.includes('FRANÇAIS');
-                    const isSportGeneric = infoUpper.includes('SPORT') || infoUpper.includes('FOOT') || infoUpper.includes('SOCCER') || infoUpper.includes('RUGBY') || infoUpper.includes('TENNIS') || infoUpper.includes('BASKET') || infoUpper.includes('UFC') || infoUpper.includes('WWE');
-                    const isPremiumBrand = infoUpper.includes('CANAL+') || infoUpper.includes('BEIN') || infoUpper.includes('RMC SPORT') || infoUpper.includes('EUROSPORT') || infoUpper.includes('DAZN') || infoUpper.includes('PRIME VIDEO') || infoUpper.includes('EQUIPE') || infoUpper.includes('SKY SPORT');
-                    const isMainFrench = infoUpper.includes('TF1') || infoUpper.includes('M6') || infoUpper.includes('FRANCE 2') || infoUpper.includes('FRANCE 3');
+                    const isArabic = infoUpper.includes('AR:') || infoUpper.includes('AR |');
+                    if (isArabic) {
+                        currentExtInfo = null;
+                        continue;
+                    }
 
-                    if ((isFrench && (isSportGeneric || isPremiumBrand)) || (isPremiumBrand && isSportGeneric) || isMainFrench) {
+                    const isFrench = infoUpper.includes('FR:') || infoUpper.includes('FR |') || infoUpper.includes('FRANCE') || infoUpper.includes('FRENCH') || infoUpper.includes('FRANÇAIS');
+                    const isSportGeneric = infoUpper.includes('SPORT') || infoUpper.includes('FOOT') || infoUpper.includes('SOCCER') || infoUpper.includes('RUGBY') || infoUpper.includes('TENNIS') || infoUpper.includes('BASKET') || infoUpper.includes('UFC') || infoUpper.includes('WWE') || infoUpper.includes('F1');
+                    const isPremiumBrand = infoUpper.includes('CANAL+') || infoUpper.includes('BEIN') || infoUpper.includes('RMC SPORT') || infoUpper.includes('EUROSPORT') || infoUpper.includes('DAZN') || infoUpper.includes('PRIME VIDEO') || infoUpper.includes('EQUIPE') || infoUpper.includes('SKY SPORT') || infoUpper.includes('CINE+') || infoUpper.includes('POLAR+') || infoUpper.includes('SERIECLUB') || infoUpper.includes('WARNER TV') || infoUpper.includes('NOVELAS TV');
+                    const isKidsAnime = infoUpper.includes('KIDS') || infoUpper.includes('ANIME') || infoUpper.includes('TOONAMI') || infoUpper.includes('MANGAS') || infoUpper.includes('GULLI') || infoUpper.includes('TELETOON') || infoUpper.includes('GAME ONE');
+                    const isCinema = infoUpper.includes('CINEMA') || infoUpper.includes('BOX OFFICE') || infoUpper.includes('GRAND ECRAN') || infoUpper.includes('FRISSON') || infoUpper.includes('EMOTION') || infoUpper.includes('FAMIZ') || infoUpper.includes('CLASSIC') || infoUpper.includes('PREMIER') || infoUpper.includes('CLUB');
+                    const isMainFrench = infoUpper.includes('TF1') || infoUpper.includes('M6') || infoUpper.includes('FRANCE 2') || infoUpper.includes('FRANCE 3') || infoUpper.includes('W9') || infoUpper.includes('TMC');
+
+                    if ((isFrench && (isSportGeneric || isPremiumBrand || isKidsAnime || isCinema || isMainFrench)) || (isPremiumBrand && isSportGeneric)) {
                         // Keep this channel
                         filteredLines.push(currentExtInfo);
                         const encodedUrl = Buffer.from(line).toString('base64');
