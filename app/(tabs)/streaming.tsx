@@ -414,10 +414,10 @@ export default function StreamingScreen() {
                   lazyLoad: false,
                   liveBufferLatencyChasing: false, // Disable chasing — let buffer grow
                   liveSync: false,
-                  liveBufferLatencyMaxLatency: 30.0, // Allow up to 30s buffer
-                  liveBufferLatencyMinLatency: 8.0,  // Keep at least 8s (stability over latency)
+                  liveBufferLatencyMaxLatency: 35.0, // Allow up to 35s buffer
+                  liveBufferLatencyMinLatency: 12.0, // Keep at least 12s (VERY stable over latency)
                   enableStashBuffer: true,
-                  stashInitialSize: 2048 * 1024, // 2MB stash (larger for stability)
+                  stashInitialSize: 4096 * 1024, // 4MB stash (larger for high-bitrate support)
                   autoCleanupSourceBuffer: true,
                   autoCleanupMaxBackwardDuration: 30,
                   autoCleanupMinBackwardDuration: 15,
@@ -428,13 +428,13 @@ export default function StreamingScreen() {
                 currentPlayer.attachMediaElement(video);
                 currentPlayer.load();
 
-                // Wait until we have at least 3s of buffer before starting playback
+                // Wait until we have a substantial buffer before starting playback
                 var playStarted = false;
                 function tryPlay() {
                   if (playStarted) return;
                   if (video.buffered.length > 0) {
                     var buffered = video.buffered.end(0) - video.buffered.start(0);
-                    if (buffered >= 5.0) {
+                    if (buffered >= 7.0) { // Increased from 5.0 to 7.0s
                       playStarted = true;
                       log('▶️ Buffer OK (' + buffered.toFixed(1) + 's) — Démarrage...');
                       video.play().catch(function(e) {
