@@ -37,46 +37,41 @@ module.exports = async (req, res) => {
         try {
             console.log(`[Vercel Proxy] Direct JSON Fetch: ${url}`);
             const response = await axios.get(url, {
-                timeout: 8000,
+                timeout: 5000,
                 headers: {
-                    'User-Agent': req.headers['user-agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                     'Accept': 'application/json, text/plain, */*',
                     'Referer': 'https://www.sofascore.com/',
-                    'Origin': 'https://www.sofascore.com',
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache'
+                    'Origin': 'https://www.sofascore.com'
                 }
             });
             return res.status(200).json(response.data);
         } catch (e) {
-            console.error(`[Vercel Proxy] Direct JSON Error: ${e.message}`);
+            console.warn(`[Vercel Proxy] Direct fetch failed for ${url}: ${e.message}. Retrying via VM...`);
 
             // FALLBACK TO VM TUNNEL (If Vercel IP is blocked/403)
             try {
                 const tunnelUrl = getBaseUrl(req);
-                if (tunnelUrl && tunnelUrl.includes('trycloudflare')) {
-                    console.log(`[Vercel Proxy] ⚠️ Fallback to VM Tunnel: ${tunnelUrl}`);
-                    // Construct VM proxy URL: tunnel/json?url=...
-                    // Note: You need to ensure your VM proxy.js handles /json or generic proxying
-                    // Since VM proxy.js is primarily for streams, we'll try to proxy via the stream proxy's generic capability if it exists,
-                    // OR just accept that we need to route this specific request differently.
-                    // Actually, looking at proxy.js (VM), it DOES NOT have a generic /json proxy endpoint.
-                    // It only has /stream and /playlist. 
-                    // CHECK: Does proxy.js have a generic proxy?
-                    // If not, we cannot fallback to VM easily without updating VM proxy.js.
-                    // Let's assume for now we just return the error, but we'll Log it clearly.
+                if (tunnelUrl) {
+                    console.log(`[Vercel Proxy] 🔄 Routing through VM: ${tunnelUrl}/json`);
+                    const vmResponse = await axios.get(`${tunnelUrl}/json`, {
+                        params: { url, key: API_KEY },
+                        timeout: 8000
+                    });
+                    console.log(`[Vercel Proxy] ✅ Success via VM Fallback`);
+                    return res.status(200).json(vmResponse.data);
                 }
-            } catch (err) { }
-
-            // For now, fail gracefully but with better status
-            if (e.response) {
-                return res.status(e.response.status).json({
-                    error: 'Target API error',
-                    status: e.response.status,
-                    message: e.message
-                });
+            } catch (err) {
+                console.error(`[Vercel Proxy] VM Fallback also failed: ${err.message}`);
             }
-            return res.status(502).json({ error: 'Direct fetch failed', message: e.message });
+
+            // Return original error if fallback also fails
+            const status = e.response?.status || 502;
+            return res.status(status).json({
+                error: 'Fetch failed',
+                message: e.message,
+                details: e.response?.data || null
+            });
         }
     }
 
