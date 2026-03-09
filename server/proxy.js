@@ -92,26 +92,29 @@ const _doFetchPlaylist = async () => {
     console.log(`[Proxy] 🔄 Refreshing Playlist (Filtered Mode)...`);
     const start = Date.now();
 
+    const allFilteredLines = ['#EXTM3U'];
+    let sourceSuccess = false;
+
     for (let i = 0; i < iptvUrls.length; i++) {
         const url = iptvUrls[i];
         try {
             const domain = new URL(url).hostname;
             console.log(`[Proxy] 📡 Fetching source ${i + 1}/${iptvUrls.length}: ${domain}...`);
             const response = await axios.get(url, {
-                timeout: 150000, // 150 seconds for very large providers
+                timeout: 150000,
                 headers: { 'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18' },
                 maxContentLength: Infinity,
                 maxBodyLength: Infinity
             });
 
             if (!response.data || !response.data.trim().startsWith('#EXTM3U')) {
-                console.warn(`[Proxy] ⚠️ Source ${i + 1} skipped: Invalid M3U format (likely HTML or error page)`);
+                console.warn(`[Proxy] ⚠️ Source ${i + 1} skipped: Invalid M3U format`);
                 continue;
             }
 
             const lines = response.data.split('\n');
-            const filteredLines = ['#EXTM3U'];
             let currentExtInfo = null;
+            let sourceCount = 0;
 
             for (let j = 0; j < lines.length; j++) {
                 const line = lines[j].trim();
@@ -130,20 +133,10 @@ const _doFetchPlaylist = async () => {
                     }
 
                     // --- SMART SOURCE FILTERING ---
-                    // 1. Identify French Content (High Priority)
                     const isFrench = infoUpper.includes('FR:') || infoUpper.includes('FR |') || infoUpper.includes('FRANCE') || infoUpper.includes('FRENCH') || infoUpper.includes('FRANÇAIS') || infoUpper.includes('(FR)');
-
-                    // 2. Identify Requested Premium Brands
                     const isRequestedBrand = infoUpper.includes('CANAL+') || infoUpper.includes('BEIN') || infoUpper.includes('RMC') || infoUpper.includes('DAZN') || infoUpper.includes('EUROSPORT') || infoUpper.includes('EQUIPE') || infoUpper.includes('CINE') || infoUpper.includes('NETFLIX') || infoUpper.includes('DISNEY') || infoUpper.includes('PARAMOUNT') || infoUpper.includes('HBO') || infoUpper.includes('WARNER') || infoUpper.includes('ACTION') || infoUpper.includes('ANIME') || infoUpper.includes('MANGA') || infoUpper.includes('GAME ONE');
-
-                    // 3. Identify International Version Clutter (to be excluded unless marked French)
-                    // We exclude most international prefixes, but keep BE: (Belgium) as they often have French content.
                     const isInternationalPrefix = infoUpper.includes('UK:') || infoUpper.includes('USA:') || infoUpper.includes('IN:') || infoUpper.includes('DE:') || infoUpper.includes('ES:') || infoUpper.includes('PT:') || infoUpper.includes('IT:') || infoUpper.includes('AU:') || infoUpper.includes('PK:') || infoUpper.includes('PL:') || infoUpper.includes('RO:') || infoUpper.includes('RU:') || infoUpper.includes('TR:') || infoUpper.includes('GR:') || infoUpper.includes('BG:');
 
-                    // DECISION LOGIC:
-                    // - Keep if it is French content.
-                    // - Keep if it is a requested brand (Sport, Cine, etc.) AND NOT an international version.
-                    // - This ensures we get high-quality content from all sources without the 10,000 "bizarre" channels.
                     let keep = false;
                     if (isFrench) {
                         keep = true;
@@ -152,25 +145,33 @@ const _doFetchPlaylist = async () => {
                     }
 
                     if (keep) {
-                        filteredLines.push(currentExtInfo);
+                        allFilteredLines.push(currentExtInfo);
                         const encodedUrl = Buffer.from(line).toString('base64');
-                        filteredLines.push(`/stream?id=${encodedUrl}&key=${API_KEY}`);
+                        allFilteredLines.push(`/stream?id=${encodedUrl}&key=${API_KEY}`);
+                        sourceCount++;
                     }
                     currentExtInfo = null;
                 }
             }
-
-            const finalOutput = filteredLines.join('\n');
-            playlistCache.data = finalOutput;
-            playlistCache.timestamp = Date.now();
-            playlistCache.configHash = process.env.IPTV_URL;
-            console.log(`[Proxy] ✅ Playlist Updated! (Filtered) Size: ${(finalOutput.length / 1024).toFixed(2)} KB. Time: ${Date.now() - start}ms`);
-            return true;
+            console.log(`[Proxy] ✅ Source ${i + 1} processed: ${sourceCount} channels kept.`);
+            sourceSuccess = true;
         } catch (error) {
             console.error(`[Proxy] ⚠️ Source ${i + 1} failed: ${error.message}`);
         }
     }
+
+    if (sourceSuccess) {
+        const finalOutput = allFilteredLines.join('\n');
+        playlistCache.data = finalOutput;
+        playlistCache.timestamp = Date.now();
+        playlistCache.configHash = process.env.IPTV_URL;
+        console.log(`[Proxy] 🏆 Global Playlist Updated! Total Size: ${(finalOutput.length / 1024).toFixed(2)} KB. Total Duration: ${Date.now() - start}ms`);
+        return true;
+    }
+
     return false;
+};
+return false;
 };
 
 // Start Background Refresh Loop
