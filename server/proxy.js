@@ -11,6 +11,9 @@ const compression = require('compression');
 
 const app = express();
 
+// --- PAYLOAD COMPRESSION (GZIP/Brotli) ---
+app.use(compression());
+
 // --- ULTRA-PERMISSIVE CORS MIDDLEWARE (Fix for Web Streaming) ---
 app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
