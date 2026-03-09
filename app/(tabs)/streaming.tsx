@@ -721,7 +721,8 @@ export default function StreamingScreen() {
         }
     };
 
-    // Standard rendering with stability for hydration
+    if (!isMounted) return <View style={styles.container} />;
+
     return (
         <View style={styles.container}>
             {/* Tab bar */}
@@ -749,7 +750,7 @@ export default function StreamingScreen() {
             </View>
 
             {/* Tab content */}
-            {isMounted ? renderTabContent() : <View style={{ flex: 1, backgroundColor: colors.background }} />}
+            {renderTabContent()}
 
             {/* Scroll Shortcuts */}
             <View style={styles.scrollShortcuts}>
