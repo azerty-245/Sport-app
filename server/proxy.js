@@ -129,17 +129,28 @@ const _doFetchPlaylist = async () => {
                         continue;
                     }
 
-                    // BROADENED FILTERING: Include all French + Key Categories
-                    const isFrench = infoUpper.includes('FR:') || infoUpper.includes('FR |') || infoUpper.includes('FRANCE') || infoUpper.includes('FRENCH') || infoUpper.includes('FRANÇAIS');
-                    const isPremiumBrand = infoUpper.includes('CANAL+') || infoUpper.includes('BEIN') || infoUpper.includes('RMC SPORT') || infoUpper.includes('EUROSPORT') || infoUpper.includes('DAZN') || infoUpper.includes('PRIME VIDEO') || infoUpper.includes('EQUIPE') || infoUpper.includes('CINE+') || infoUpper.includes('POLAR+') || infoUpper.includes('SERIECLUB') || infoUpper.includes('WARNER TV') || infoUpper.includes('NOVELAS TV');
-                    const isCinemaSeries = infoUpper.includes('CINEMA') || infoUpper.includes('BOX OFFICE') || infoUpper.includes('MOVIE') || infoUpper.includes('FILM') || infoUpper.includes('SERIE') || infoUpper.includes('NETFLIX') || infoUpper.includes('DISNEY+') || infoUpper.includes('PARAMOUNT') || infoUpper.includes('HBO') || infoUpper.includes('APPLE TV');
-                    const isAnimeManga = infoUpper.includes('ANIME') || infoUpper.includes('MANGA') || infoUpper.includes('TOONAMI') || infoUpper.includes('ADULT SWIM') || infoUpper.includes('GAME ONE') || infoUpper.includes('J-ONE');
-                    const isKids = infoUpper.includes('KIDS') || infoUpper.includes('GULLI') || infoUpper.includes('NICK') || infoUpper.includes('CARTOON');
+                    // --- SMART SOURCE FILTERING ---
+                    // 1. Identify French Content (High Priority)
+                    const isFrench = infoUpper.includes('FR:') || infoUpper.includes('FR |') || infoUpper.includes('FRANCE') || infoUpper.includes('FRENCH') || infoUpper.includes('FRANÇAIS') || infoUpper.includes('(FR)');
 
-                    // Final decision:
-                    // If it's French, WE KEEP IT.
-                    // If it's a Premium Brand, Cinema/Series, or Anime/Manga, WE KEEP IT (unless Arabic/Filler).
-                    if (isFrench || isPremiumBrand || isCinemaSeries || isAnimeManga || isKids) {
+                    // 2. Identify Requested Premium Brands
+                    const isRequestedBrand = infoUpper.includes('CANAL+') || infoUpper.includes('BEIN') || infoUpper.includes('RMC') || infoUpper.includes('DAZN') || infoUpper.includes('EUROSPORT') || infoUpper.includes('EQUIPE') || infoUpper.includes('CINE') || infoUpper.includes('NETFLIX') || infoUpper.includes('DISNEY') || infoUpper.includes('PARAMOUNT') || infoUpper.includes('HBO') || infoUpper.includes('WARNER') || infoUpper.includes('ACTION') || infoUpper.includes('ANIME') || infoUpper.includes('MANGA') || infoUpper.includes('GAME ONE');
+
+                    // 3. Identify International Version Clutter (to be excluded unless marked French)
+                    const isInternationalPrefix = infoUpper.includes('UK:') || infoUpper.includes('USA:') || infoUpper.includes('IN:') || infoUpper.includes('DE:') || infoUpper.includes('ES:') || infoUpper.includes('PT:') || infoUpper.includes('IT:') || infoUpper.includes('AU:') || infoUpper.includes('PK:');
+
+                    // DECISION LOGIC:
+                    // - Keep if it is French content.
+                    // - Keep if it is a requested brand (Sport, Cine, etc.) AND NOT an international version.
+                    // - This ensures we get high-quality content from all sources without the 10,000 "bizarre" channels.
+                    let keep = false;
+                    if (isFrench) {
+                        keep = true;
+                    } else if (isRequestedBrand && !isInternationalPrefix) {
+                        keep = true;
+                    }
+
+                    if (keep) {
                         filteredLines.push(currentExtInfo);
                         const encodedUrl = Buffer.from(line).toString('base64');
                         filteredLines.push(`/stream?id=${encodedUrl}&key=${API_KEY}`);
