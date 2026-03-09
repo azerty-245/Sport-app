@@ -129,28 +129,17 @@ const _doFetchPlaylist = async () => {
                         continue;
                     }
 
-                    // --- TARGETED FRENCH & PREMIUM FILTERING ---
-                    // 1. Identify French Content (Broad match to catch different source naming)
-                    const isFrench = infoUpper.includes('FR:') || infoUpper.includes('FR |') || infoUpper.includes('FRANCE') || infoUpper.includes('FRENCH') || infoUpper.includes('FRANÇAIS') || infoUpper.includes('(FR)') || infoUpper.includes(' FR ');
-
-                    // 2. Identify Premium Brands (User Requests)
-                    const isPremiumBrand = infoUpper.includes('CANAL+') || infoUpper.includes('BEIN') || infoUpper.includes('RMC') || infoUpper.includes('DAZN') || infoUpper.includes('EUROSPORT') || infoUpper.includes('EQUIPE') || infoUpper.includes('PRIME VIDEO');
-                    const isEntertainment = infoUpper.includes('CINE') || infoUpper.includes('NETFLIX') || infoUpper.includes('DISNEY') || infoUpper.includes('PARAMOUNT') || infoUpper.includes('HBO') || infoUpper.includes('APPLE TV') || infoUpper.includes('WARNER') || infoUpper.includes('ACTION');
-                    const isAnimeManga = infoUpper.includes('ANIME') || infoUpper.includes('MANGA') || infoUpper.includes('ADULT SWIM') || infoUpper.includes('GAME ONE') || infoUpper.includes('J-ONE');
+                    // BROADENED FILTERING: Include all French + Key Categories
+                    const isFrench = infoUpper.includes('FR:') || infoUpper.includes('FR |') || infoUpper.includes('FRANCE') || infoUpper.includes('FRENCH') || infoUpper.includes('FRANÇAIS');
+                    const isPremiumBrand = infoUpper.includes('CANAL+') || infoUpper.includes('BEIN') || infoUpper.includes('RMC SPORT') || infoUpper.includes('EUROSPORT') || infoUpper.includes('DAZN') || infoUpper.includes('PRIME VIDEO') || infoUpper.includes('EQUIPE') || infoUpper.includes('CINE+') || infoUpper.includes('POLAR+') || infoUpper.includes('SERIECLUB') || infoUpper.includes('WARNER TV') || infoUpper.includes('NOVELAS TV');
+                    const isCinemaSeries = infoUpper.includes('CINEMA') || infoUpper.includes('BOX OFFICE') || infoUpper.includes('MOVIE') || infoUpper.includes('FILM') || infoUpper.includes('SERIE') || infoUpper.includes('NETFLIX') || infoUpper.includes('DISNEY+') || infoUpper.includes('PARAMOUNT') || infoUpper.includes('HBO') || infoUpper.includes('APPLE TV');
+                    const isAnimeManga = infoUpper.includes('ANIME') || infoUpper.includes('MANGA') || infoUpper.includes('TOONAMI') || infoUpper.includes('ADULT SWIM') || infoUpper.includes('GAME ONE') || infoUpper.includes('J-ONE');
                     const isKids = infoUpper.includes('KIDS') || infoUpper.includes('GULLI') || infoUpper.includes('NICK') || infoUpper.includes('CARTOON');
 
-                    // 3. Keep if it's French OR if it's a requested brand (to allow for sources that might not mark FR explicitly)
-                    // BUT: Exclude blatant international prefixes if it's not marked as French
-                    const isInternational = infoUpper.includes('UK:') || infoUpper.includes('USA:') || infoUpper.includes('IN:') || infoUpper.includes('DE:') || infoUpper.includes('ES:') || infoUpper.includes('AU:');
-
-                    let keep = false;
-                    if (isFrench) {
-                        keep = true;
-                    } else if ((isPremiumBrand || isEntertainment || isAnimeManga || isKids) && !isInternational) {
-                        keep = true;
-                    }
-
-                    if (keep) {
+                    // Final decision:
+                    // If it's French, WE KEEP IT.
+                    // If it's a Premium Brand, Cinema/Series, or Anime/Manga, WE KEEP IT (unless Arabic/Filler).
+                    if (isFrench || isPremiumBrand || isCinemaSeries || isAnimeManga || isKids) {
                         filteredLines.push(currentExtInfo);
                         const encodedUrl = Buffer.from(line).toString('base64');
                         filteredLines.push(`/stream?id=${encodedUrl}&key=${API_KEY}`);
