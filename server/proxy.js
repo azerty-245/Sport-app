@@ -137,7 +137,8 @@ const _doFetchPlaylist = async () => {
                     const isRequestedBrand = infoUpper.includes('CANAL+') || infoUpper.includes('BEIN') || infoUpper.includes('RMC') || infoUpper.includes('DAZN') || infoUpper.includes('EUROSPORT') || infoUpper.includes('EQUIPE') || infoUpper.includes('CINE') || infoUpper.includes('NETFLIX') || infoUpper.includes('DISNEY') || infoUpper.includes('PARAMOUNT') || infoUpper.includes('HBO') || infoUpper.includes('WARNER') || infoUpper.includes('ACTION') || infoUpper.includes('ANIME') || infoUpper.includes('MANGA') || infoUpper.includes('GAME ONE');
 
                     // 3. Identify International Version Clutter (to be excluded unless marked French)
-                    const isInternationalPrefix = infoUpper.includes('UK:') || infoUpper.includes('USA:') || infoUpper.includes('IN:') || infoUpper.includes('DE:') || infoUpper.includes('ES:') || infoUpper.includes('PT:') || infoUpper.includes('IT:') || infoUpper.includes('AU:') || infoUpper.includes('PK:');
+                    // We exclude most international prefixes, but keep BE: (Belgium) as they often have French content.
+                    const isInternationalPrefix = infoUpper.includes('UK:') || infoUpper.includes('USA:') || infoUpper.includes('IN:') || infoUpper.includes('DE:') || infoUpper.includes('ES:') || infoUpper.includes('PT:') || infoUpper.includes('IT:') || infoUpper.includes('AU:') || infoUpper.includes('PK:') || infoUpper.includes('PL:') || infoUpper.includes('RO:') || infoUpper.includes('RU:') || infoUpper.includes('TR:') || infoUpper.includes('GR:') || infoUpper.includes('BG:');
 
                     // DECISION LOGIC:
                     // - Keep if it is French content.
