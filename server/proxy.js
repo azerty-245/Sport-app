@@ -121,8 +121,10 @@ const _doFetchPlaylist = async () => {
                     const infoUpper = currentExtInfo.toUpperCase();
 
                     // --- REPLICATE CLIENT FILTERING LOGIC ---
-                    const isArabic = infoUpper.includes('AR:') || infoUpper.includes('AR |') || infoUpper.includes('AR -') || infoUpper.includes('ARABIC');
-                    if (isArabic) {
+                    const isArabic = infoUpper.includes('AR:') || infoUpper.includes('AR |') || infoUpper.includes('AR -') || infoUpper.includes('ARABIC') || infoUpper.includes('MBC') || infoUpper.includes('OSN');
+                    const isFiller = infoUpper.includes('PRODUITS') || infoUpper.includes('SURPRISE') || infoUpper.includes('BOUTIQUE') || infoUpper.includes('VOD') || infoUpper.includes('LOOP') || infoUpper.includes('RADIO');
+
+                    if (isArabic || isFiller) {
                         currentExtInfo = null;
                         continue;
                     }
@@ -130,12 +132,16 @@ const _doFetchPlaylist = async () => {
                     // BROADENED FILTERING: Include all French + Key Categories
                     const isFrench = infoUpper.includes('FR:') || infoUpper.includes('FR |') || infoUpper.includes('FRANCE') || infoUpper.includes('FRENCH') || infoUpper.includes('FRANÇAIS');
                     const isPremiumBrand = infoUpper.includes('CANAL+') || infoUpper.includes('BEIN') || infoUpper.includes('RMC SPORT') || infoUpper.includes('EUROSPORT') || infoUpper.includes('DAZN') || infoUpper.includes('PRIME VIDEO') || infoUpper.includes('EQUIPE') || infoUpper.includes('SKY SPORT') || infoUpper.includes('CINE+') || infoUpper.includes('POLAR+') || infoUpper.includes('SERIECLUB') || infoUpper.includes('WARNER TV') || infoUpper.includes('NOVELAS TV');
-                    const isCinemaSeries = infoUpper.includes('CINEMA') || infoUpper.includes('BOX OFFICE') || infoUpper.includes('MOVIE') || infoUpper.includes('FILM') || infoUpper.includes('SERIE') || infoUpper.includes('NETFLIX') || infoUpper.includes('DISNEY+') || infoUpper.includes('PARAMOUNT') || infoUpper.includes('HBO') || infoUpper.includes('APPLE TV');
-                    const isAnimeManga = infoUpper.includes('ANIME') || infoUpper.includes('MANGA') || infoUpper.includes('TOONAMI') || infoUpper.includes('ADULT SWIM') || infoUpper.includes('GAME ONE') || infoUpper.includes('J-ONE');
-                    const isKids = infoUpper.includes('KIDS') || infoUpper.includes('GULLI') || infoUpper.includes('NICK') || infoUpper.includes('DISNEY') || infoUpper.includes('CARTOON');
 
-                    // If it's French, WE KEEP IT.
-                    // If it's a Premium Brand, Cinema/Series, or Anime/Manga, WE KEEP IT (unless Arabic).
+                    // Categorized filtering: Must be French OR a high-value global brand
+                    const isCinemaSeries = (infoUpper.includes('CINEMA') || infoUpper.includes('BOX OFFICE') || infoUpper.includes('MOVIE') || infoUpper.includes('FILM') || infoUpper.includes('SERIE') || infoUpper.includes('NETFLIX') || infoUpper.includes('DISNEY+') || infoUpper.includes('PARAMOUNT') || infoUpper.includes('HBO') || infoUpper.includes('APPLE TV')) && (isFrench || isPremiumBrand);
+                    const isAnimeManga = (infoUpper.includes('ANIME') || infoUpper.includes('MANGA') || infoUpper.includes('TOONAMI') || infoUpper.includes('ADULT SWIM') || infoUpper.includes('GAME ONE') || infoUpper.includes('J-ONE')) && isFrench;
+                    const isKids = (infoUpper.includes('KIDS') || infoUpper.includes('GULLI') || infoUpper.includes('NICK') || infoUpper.includes('DISNEY') || infoUpper.includes('CARTOON')) && isFrench;
+
+                    // Final decision:
+                    // 1. Keep all French channels.
+                    // 2. Keep Premium brands (Sport/Cinema) even if not explicitly marked FR (many sports are global).
+                    // 3. Keep Cinema/Series/Anime/Kids ONLY if they are French.
                     if (isFrench || isPremiumBrand || isCinemaSeries || isAnimeManga || isKids) {
                         filteredLines.push(currentExtInfo);
                         const encodedUrl = Buffer.from(line).toString('base64');
