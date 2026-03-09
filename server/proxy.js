@@ -123,15 +123,16 @@ const _doFetchPlaylist = async () => {
                         continue;
                     }
 
+                    // BROADENED FILTERING: Include all French + Key Categories
                     const isFrench = infoUpper.includes('FR:') || infoUpper.includes('FR |') || infoUpper.includes('FRANCE') || infoUpper.includes('FRENCH') || infoUpper.includes('FRANÇAIS');
-                    const isSportGeneric = infoUpper.includes('SPORT') || infoUpper.includes('FOOT') || infoUpper.includes('SOCCER') || infoUpper.includes('RUGBY') || infoUpper.includes('TENNIS') || infoUpper.includes('BASKET') || infoUpper.includes('UFC') || infoUpper.includes('WWE') || infoUpper.includes('F1');
                     const isPremiumBrand = infoUpper.includes('CANAL+') || infoUpper.includes('BEIN') || infoUpper.includes('RMC SPORT') || infoUpper.includes('EUROSPORT') || infoUpper.includes('DAZN') || infoUpper.includes('PRIME VIDEO') || infoUpper.includes('EQUIPE') || infoUpper.includes('SKY SPORT') || infoUpper.includes('CINE+') || infoUpper.includes('POLAR+') || infoUpper.includes('SERIECLUB') || infoUpper.includes('WARNER TV') || infoUpper.includes('NOVELAS TV');
-                    const isKidsAnime = infoUpper.includes('KIDS') || infoUpper.includes('ANIME') || infoUpper.includes('TOONAMI') || infoUpper.includes('MANGAS') || infoUpper.includes('GULLI') || infoUpper.includes('TELETOON') || infoUpper.includes('GAME ONE');
-                    const isCinema = infoUpper.includes('CINEMA') || infoUpper.includes('BOX OFFICE') || infoUpper.includes('GRAND ECRAN') || infoUpper.includes('FRISSON') || infoUpper.includes('EMOTION') || infoUpper.includes('FAMIZ') || infoUpper.includes('CLASSIC') || infoUpper.includes('PREMIER') || infoUpper.includes('CLUB');
-                    const isMainFrench = infoUpper.includes('TF1') || infoUpper.includes('M6') || infoUpper.includes('FRANCE 2') || infoUpper.includes('FRANCE 3') || infoUpper.includes('W9') || infoUpper.includes('TMC');
+                    const isCinemaSeries = infoUpper.includes('CINEMA') || infoUpper.includes('BOX OFFICE') || infoUpper.includes('MOVIE') || infoUpper.includes('FILM') || infoUpper.includes('SERIE') || infoUpper.includes('NETFLIX') || infoUpper.includes('DISNEY+') || infoUpper.includes('PARAMOUNT') || infoUpper.includes('HBO') || infoUpper.includes('APPLE TV');
+                    const isAnimeManga = infoUpper.includes('ANIME') || infoUpper.includes('MANGA') || infoUpper.includes('TOONAMI') || infoUpper.includes('ADULT SWIM') || infoUpper.includes('GAME ONE') || infoUpper.includes('J-ONE');
+                    const isKids = infoUpper.includes('KIDS') || infoUpper.includes('GULLI') || infoUpper.includes('NICK') || infoUpper.includes('DISNEY') || infoUpper.includes('CARTOON');
 
-                    if ((isFrench && (isSportGeneric || isPremiumBrand || isKidsAnime || isCinema || isMainFrench)) || (isPremiumBrand && isSportGeneric)) {
-                        // Keep this channel
+                    // If it's French, WE KEEP IT.
+                    // If it's a Premium Brand, Cinema/Series, or Anime/Manga, WE KEEP IT (unless Arabic).
+                    if (isFrench || isPremiumBrand || isCinemaSeries || isAnimeManga || isKids) {
                         filteredLines.push(currentExtInfo);
                         const encodedUrl = Buffer.from(line).toString('base64');
                         filteredLines.push(`/stream?id=${encodedUrl}&key=${API_KEY}`);

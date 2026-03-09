@@ -38,7 +38,17 @@ yarn-error.*
 *.tsbuildinfo
 
 # IPTV Testing (Local Only)
+test_iptv_link.py
 test_sources.py
+test_stalker.py
+test_stalker_stability.py
+download_stalker.py
+discover_stalker.py
+process_stalker.py
+extract_stalker_fr.py
+stalker_dump.json
+stalker_french.m3u
+*.log
 
 # generated native folders
 /ios

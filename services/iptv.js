@@ -162,32 +162,35 @@ export const getIPTVChannels = async (force = false) => {
                 const nameUpper = currentChannel.name?.toUpperCase() || '';
                 const groupUpper = currentChannel.group?.toUpperCase() || '';
 
-                // 1. Identify French Content
+                // BROADENED CLIENT FILTERING: Match Server Logic
                 const isFrench = nameUpper.includes('FR:') || nameUpper.includes('FR |') || nameUpper.includes('FRANCE') || groupUpper.includes('FRANCE') || groupUpper.includes('FR |') || groupUpper.includes('FRENCH') || groupUpper.includes('FRANÇAIS');
+                const isPremiumBrand = nameUpper.includes('CANAL+') || nameUpper.includes('BEIN') || nameUpper.includes('RMC SPORT') || nameUpper.includes('EUROSPORT') || nameUpper.includes('DAZN') || nameUpper.includes('PRIME VIDEO') || nameUpper.includes('EQUIPE') || nameUpper.includes('SKY SPORT') || nameUpper.includes('CINE+') || nameUpper.includes('POLAR+') || nameUpper.includes('SERIECLUB') || nameUpper.includes('WARNER TV') || nameUpper.includes('NOVELAS TV');
+                const isCinemaSeries = nameUpper.includes('CINEMA') || nameUpper.includes('BOX OFFICE') || nameUpper.includes('MOVIE') || nameUpper.includes('FILM') || nameUpper.includes('SERIE') || groupUpper.includes('CINEMA') || groupUpper.includes('SERIE') || nameUpper.includes('NETFLIX') || nameUpper.includes('DISNEY+') || nameUpper.includes('PARAMOUNT') || nameUpper.includes('HBO');
+                const isAnimeManga = nameUpper.includes('ANIME') || nameUpper.includes('MANGA') || nameUpper.includes('TOONAMI') || nameUpper.includes('GAME ONE') || nameUpper.includes('J-ONE');
+                const isKids = nameUpper.includes('KIDS') || nameUpper.includes('GULLI') || nameUpper.includes('NICK') || groupUpper.includes('KIDS');
 
-                // 2. Identify Sports Content (Generic)
-                const isSportGeneric = nameUpper.includes('SPORT') || groupUpper.includes('SPORT') || nameUpper.includes('FOOT') || nameUpper.includes('SOCCER') || nameUpper.includes('RUGBY') || nameUpper.includes('TENNIS') || nameUpper.includes('BASKET') || nameUpper.includes('MOTO') || nameUpper.includes('AUTO') || nameUpper.includes('FIGHT') || nameUpper.includes('UFC') || nameUpper.includes('WWE');
+                // If it passes ANY of our broad categories, we keep it.
+                if (isFrench || isPremiumBrand || isCinemaSeries || isAnimeManga || isKids) {
+                    // Set category for UI sorting
+                    if (isPremiumBrand || nameUpper.includes('SPORT')) {
+                        currentChannel.category = 'Sport';
+                    } else if (isCinemaSeries) {
+                        currentChannel.category = 'Cinema';
+                    } else if (isAnimeManga) {
+                        currentChannel.category = 'Anime';
+                    } else if (isKids) {
+                        currentChannel.category = 'Kids';
+                    } else {
+                        currentChannel.category = 'General';
+                    }
 
-                // 3. Identify Premium/Specific Sports Channels (Explicit Brands)
-                const isPremiumBrand = nameUpper.includes('CANAL+') || nameUpper.includes('BEIN') || nameUpper.includes('RMC SPORT') ||
-                    nameUpper.includes('EUROSPORT') || nameUpper.includes('DAZN') || nameUpper.includes('PRIME VIDEO') ||
-                    nameUpper.includes('EQUIPE') || nameUpper.includes('AUTOMOTO') || nameUpper.includes('EQUIDIA') ||
-                    nameUpper.includes('ELEVEN') || nameUpper.includes('SKY SPORT') || nameUpper.includes('MULTISPORTS') ||
-                    nameUpper.includes('GOLF+');
+                    // Clean up name
+                    currentChannel.name = currentChannel.name
+                        .replace(/^(FR:|FRANCE|FRENCH)\s*/i, '')
+                        .replace(/\(.*\)/, '')
+                        .replace(/\[.*\]/, '')
+                        .trim();
 
-                // 4. Identify Main French General Channels (often show major events)
-                const isMainFrench = nameUpper === 'FR: TF1' || nameUpper === 'FR: M6' || nameUpper === 'FR: FRANCE 2' || nameUpper === 'FR: FRANCE 3' ||
-                    nameUpper.includes('TF1 4K') || nameUpper.includes('M6 4K') || nameUpper === 'TF1' || nameUpper === 'M6';
-
-                // Final filtering: Must be French Sport OR any clear Premium Sport brand
-                if ((isFrench && (isSportGeneric || isPremiumBrand)) || (isPremiumBrand && isSportGeneric)) {
-                    currentChannel.category = 'Sport';
-                    // Clean up name (remove "FR: " prefix, regional tags, etc.)
-                    currentChannel.name = currentChannel.name.replace(/^(FR:|FRANCE|FRENCH)\s*/i, '').replace(/\(.*\)/, '').replace(/\[.*\]/, '').trim();
-                    channels.push(currentChannel);
-                } else if (isMainFrench) {
-                    currentChannel.category = 'General';
-                    currentChannel.name = currentChannel.name.replace(/^(FR:|FRANCE|FRENCH)\s*/i, '').replace(/\(.*\)/, '').trim();
                     channels.push(currentChannel);
                 }
 
