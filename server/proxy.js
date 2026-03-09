@@ -100,6 +100,11 @@ const _doFetchPlaylist = async () => {
                 headers: { 'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18' }
             });
 
+            if (!response.data || !response.data.trim().startsWith('#EXTM3U')) {
+                console.warn(`[Proxy] ⚠️ Source ${i + 1} skipped: Invalid M3U format (likely HTML or error page)`);
+                continue;
+            }
+
             const lines = response.data.split('\n');
             const filteredLines = ['#EXTM3U'];
             let currentExtInfo = null;
@@ -226,12 +231,14 @@ class Broadcaster {
         this.hasReceivedData = false;
 
         this.ffmpeg = spawn('ffmpeg', [
+            '-probesize', '32k', '-analyzeduration', '0', // Fast startup - minimize probe
             '-reconnect', '1', '-reconnect_at_eof', '1', '-reconnect_streamed', '1',
             '-reconnect_on_network_error', '1', '-reconnect_on_http_error', '4xx,5xx',
             '-fflags', '+genpts+igndts+discardcorrupt+flush_packets',
             '-flags', '+global_header',
             '-i', this.url,
-            '-c:v', 'copy', '-c:a', 'aac', '-b:a', '128k',
+            '-c:v', 'copy',
+            '-c:a', 'aac', '-b:a', '128k', '-af', 'aresample=async=1', // Fix audio desync on jitter
             '-f', 'mpegts', 'pipe:1'
         ]);
 
@@ -268,7 +275,7 @@ class Broadcaster {
 
             // Check for speed (Source health)
             const speedMatch = msg.match(/speed=\s*(\d+\.?\d*)x/);
-            if (speedMatch && parseFloat(speedMatch[1]) < 0.9) {
+            if (speedMatch && parseFloat(speedMatch[1]) < 0.85) {
                 console.warn(`[Proxy] 🐢 Slow Source: ${speedMatch[0]} for ${this.url.substring(this.url.lastIndexOf('/') + 1)}`);
             }
 

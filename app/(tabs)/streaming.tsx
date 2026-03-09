@@ -415,9 +415,9 @@ export default function StreamingScreen() {
                   liveBufferLatencyChasing: false, // Disable chasing — let buffer grow
                   liveSync: false,
                   liveBufferLatencyMaxLatency: 30.0, // Allow up to 30s buffer
-                  liveBufferLatencyMinLatency: 5.0,  // Keep at least 5s
+                  liveBufferLatencyMinLatency: 8.0,  // Keep at least 8s (stability over latency)
                   enableStashBuffer: true,
-                  stashInitialSize: 1024 * 1024, // 1MB stash (safe, absorbs bursts)
+                  stashInitialSize: 2048 * 1024, // 2MB stash (larger for stability)
                   autoCleanupSourceBuffer: true,
                   autoCleanupMaxBackwardDuration: 30,
                   autoCleanupMinBackwardDuration: 15,
@@ -434,7 +434,7 @@ export default function StreamingScreen() {
                   if (playStarted) return;
                   if (video.buffered.length > 0) {
                     var buffered = video.buffered.end(0) - video.buffered.start(0);
-                    if (buffered >= 3.0) {
+                    if (buffered >= 5.0) {
                       playStarted = true;
                       log('▶️ Buffer OK (' + buffered.toFixed(1) + 's) — Démarrage...');
                       video.play().catch(function(e) {
@@ -442,7 +442,7 @@ export default function StreamingScreen() {
                       });
                       return;
                     }
-                    log('⏳ Buffering... ' + buffered.toFixed(1) + 's / 3.0s');
+                    log('⏳ Buffering... ' + buffered.toFixed(1) + 's / 5.0s');
                   }
                   setTimeout(tryPlay, 500);
                 }
