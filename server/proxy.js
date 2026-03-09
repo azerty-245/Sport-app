@@ -232,14 +232,15 @@ class Broadcaster {
         this.hasReceivedData = false;
 
         this.ffmpeg = spawn('ffmpeg', [
-            '-probesize', '32k', '-analyzeduration', '0', // Fast startup - minimize probe
+            '-user_agent', 'VLC/3.0.18 LibVLC/3.0.18',
+            '-probesize', '256k', '-analyzeduration', '1000000', // Increased for high-quality sources
             '-reconnect', '1', '-reconnect_at_eof', '1', '-reconnect_streamed', '1',
             '-reconnect_on_network_error', '1', '-reconnect_on_http_error', '4xx,5xx',
             '-fflags', '+genpts+igndts+discardcorrupt+flush_packets',
             '-flags', '+global_header',
             '-i', this.url,
             '-c:v', 'copy',
-            '-c:a', 'aac', '-b:a', '128k', '-af', 'aresample=async=1', // Fix audio desync on jitter
+            '-c:a', 'aac', '-b:a', '128k', '-af', 'aresample=async=1',
             '-f', 'mpegts', 'pipe:1'
         ]);
 
@@ -379,7 +380,13 @@ app.get('/stream', validateApiKey, async (req, res) => {
 
     if (nocode === 'true') {
         try {
-            const response = await axios({ method: 'get', url, responseType: 'stream', timeout: 5000 });
+            const response = await axios({
+                method: 'get',
+                url,
+                responseType: 'stream',
+                timeout: 10000,
+                headers: { 'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18' } // UA added
+            });
             response.data.pipe(res);
         } catch (e) { res.status(502).send('Error'); }
         return;
@@ -430,6 +437,7 @@ app.get('/hls', validateApiKey, async (req, res) => {
 
     // Spawn FFmpeg with HLS output
     const ffmpeg = spawn('ffmpeg', [
+        '-user_agent', 'VLC/3.0.18 LibVLC/3.0.18', // UA added
         '-reconnect', '1', '-reconnect_at_eof', '1', '-reconnect_streamed', '1',
         '-reconnect_on_network_error', '1', '-reconnect_on_http_error', '4xx,5xx',
         '-fflags', '+genpts+igndts+discardcorrupt',
