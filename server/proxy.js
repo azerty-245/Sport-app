@@ -117,7 +117,7 @@ const _doFetchPlaylist = async () => {
                     const infoUpper = currentExtInfo.toUpperCase();
 
                     // --- REPLICATE CLIENT FILTERING LOGIC ---
-                    const isArabic = infoUpper.includes('AR:') || infoUpper.includes('AR |');
+                    const isArabic = infoUpper.includes('AR:') || infoUpper.includes('AR |') || infoUpper.includes('AR -') || infoUpper.includes('ARABIC');
                     if (isArabic) {
                         currentExtInfo = null;
                         continue;
