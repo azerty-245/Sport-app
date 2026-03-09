@@ -171,13 +171,10 @@ const _doFetchPlaylist = async () => {
 
     return false;
 };
-return false;
-};
 
 // Start Background Refresh Loop
 if (process.env.IPTV_URL) {
     fetchPlaylist();
-    setInterval(fetchPlaylist, REFRESH_INTERVAL);
 }
 
 // Discovery endpoint
