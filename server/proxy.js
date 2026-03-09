@@ -129,20 +129,30 @@ const _doFetchPlaylist = async () => {
                         continue;
                     }
 
-                    // BROADENED FILTERING: Include all French + Key Categories
-                    const isFrench = infoUpper.includes('FR:') || infoUpper.includes('FR |') || infoUpper.includes('FRANCE') || infoUpper.includes('FRENCH') || infoUpper.includes('FRANÇAIS');
-                    const isPremiumBrand = infoUpper.includes('CANAL+') || infoUpper.includes('BEIN') || infoUpper.includes('RMC SPORT') || infoUpper.includes('EUROSPORT') || infoUpper.includes('DAZN') || infoUpper.includes('PRIME VIDEO') || infoUpper.includes('EQUIPE') || infoUpper.includes('SKY SPORT') || infoUpper.includes('CINE+') || infoUpper.includes('POLAR+') || infoUpper.includes('SERIECLUB') || infoUpper.includes('WARNER TV') || infoUpper.includes('NOVELAS TV');
+                    // --- STRICT FRENCH-FIRST FILTERING ---
+                    // 1. Identify French Content
+                    const isFrench = infoUpper.includes('FR:') || infoUpper.includes('FR |') || infoUpper.includes('FRANCE') || infoUpper.includes('FRENCH') || infoUpper.includes('FRANÇAIS') || infoUpper.includes('(FR)');
 
-                    // Categorized filtering: Must be French OR a high-value global brand
-                    const isCinemaSeries = (infoUpper.includes('CINEMA') || infoUpper.includes('BOX OFFICE') || infoUpper.includes('MOVIE') || infoUpper.includes('FILM') || infoUpper.includes('SERIE') || infoUpper.includes('NETFLIX') || infoUpper.includes('DISNEY+') || infoUpper.includes('PARAMOUNT') || infoUpper.includes('HBO') || infoUpper.includes('APPLE TV')) && (isFrench || isPremiumBrand);
-                    const isAnimeManga = (infoUpper.includes('ANIME') || infoUpper.includes('MANGA') || infoUpper.includes('TOONAMI') || infoUpper.includes('ADULT SWIM') || infoUpper.includes('GAME ONE') || infoUpper.includes('J-ONE')) && isFrench;
-                    const isKids = (infoUpper.includes('KIDS') || infoUpper.includes('GULLI') || infoUpper.includes('NICK') || infoUpper.includes('DISNEY') || infoUpper.includes('CARTOON')) && isFrench;
+                    // 2. Identify Premium Brands (User Requests)
+                    const isPremiumBrand = infoUpper.includes('CANAL+') || infoUpper.includes('BEIN') || infoUpper.includes('RMC') || infoUpper.includes('DAZN') || infoUpper.includes('EUROSPORT') || infoUpper.includes('EQUIPE') || infoUpper.includes('PRIME VIDEO');
+                    const isEntertainment = infoUpper.includes('CINE') || infoUpper.includes('NETFLIX') || infoUpper.includes('DISNEY') || infoUpper.includes('PARAMOUNT') || infoUpper.includes('HBO') || infoUpper.includes('APPLE TV') || infoUpper.includes('WARNER') || infoUpper.includes('ACTION');
+                    const isAnimeManga = infoUpper.includes('ANIME') || infoUpper.includes('MANGA') || infoUpper.includes('TOONAMI') || infoUpper.includes('ADULT SWIM') || infoUpper.includes('GAME ONE') || infoUpper.includes('J-ONE');
+                    const isKids = infoUpper.includes('KIDS') || infoUpper.includes('GULLI') || infoUpper.includes('NICK') || infoUpper.includes('CARTOON');
 
-                    // Final decision:
-                    // 1. Keep all French channels.
-                    // 2. Keep Premium brands (Sport/Cinema) even if not explicitly marked FR (many sports are global).
-                    // 3. Keep Cinema/Series/Anime/Kids ONLY if they are French.
-                    if (isFrench || isPremiumBrand || isCinemaSeries || isAnimeManga || isKids) {
+                    // 3. Final Decision:
+                    // A channel is kept ONLY if:
+                    // - It is explicitly marked as French (isFrench)
+                    // - OR it is a premium/entertainment brand AND it's the French version (no UK/USA/DE/IN versions)
+                    // Note: Most international premium brands will be filtered out unless they contain a French tag.
+                    let keep = false;
+                    if (isFrench) {
+                        keep = true;
+                    } else if ((isPremiumBrand || isEntertainment || isAnimeManga || isKids) && isFrench) {
+                        // This branch is redundant but emphasizes the "French Only" rule for brands
+                        keep = true;
+                    }
+
+                    if (keep) {
                         filteredLines.push(currentExtInfo);
                         const encodedUrl = Buffer.from(line).toString('base64');
                         filteredLines.push(`/stream?id=${encodedUrl}&key=${API_KEY}`);
