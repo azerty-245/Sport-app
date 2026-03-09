@@ -148,7 +148,20 @@ const _doFetchPlaylist = async () => {
                     }
 
                     if (keep) {
-                        allFilteredLines.push(currentExtInfo);
+                        // MINIFICATION: Strip redundant tags to save bandwidth
+                        // We keep tvg-logo and the display name, everything else is usually used only by the backend.
+                        let minifiedInfo = currentExtInfo;
+                        const logoMatch = currentExtInfo.match(/tvg-logo="([^"]*)"/i);
+                        const groupMatch = currentExtInfo.match(/group-title="([^"]*)"/i);
+                        const nameParts = currentExtInfo.split(',');
+                        const displayName = nameParts[nameParts.length - 1];
+
+                        minifiedInfo = `#EXTINF:-1`;
+                        if (logoMatch) minifiedInfo += ` tvg-logo="${logoMatch[1]}"`;
+                        if (groupMatch) minifiedInfo += ` group-title="${groupMatch[1]}"`;
+                        minifiedInfo += `,${displayName}`;
+
+                        allFilteredLines.push(minifiedInfo);
                         const encodedUrl = Buffer.from(line).toString('base64');
                         allFilteredLines.push(`/stream?id=${encodedUrl}&key=${API_KEY}`);
                         sourceCount++;
