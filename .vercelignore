@@ -11,3 +11,4 @@ node_modules/
 dist/
 dist-electron/
 eas.json
+VM_INFO.txt
