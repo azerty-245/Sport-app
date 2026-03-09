@@ -98,8 +98,10 @@ const _doFetchPlaylist = async () => {
             const domain = new URL(url).hostname;
             console.log(`[Proxy] 📡 Fetching source ${i + 1}/${iptvUrls.length}: ${domain}...`);
             const response = await axios.get(url, {
-                timeout: 60000, // Increased to 60s for large playlists
-                headers: { 'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18' }
+                timeout: 150000, // 150 seconds for very large providers
+                headers: { 'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18' },
+                maxContentLength: Infinity,
+                maxBodyLength: Infinity
             });
 
             if (!response.data || !response.data.trim().startsWith('#EXTM3U')) {
