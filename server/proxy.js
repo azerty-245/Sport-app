@@ -86,13 +86,28 @@ const fetchPlaylist = async () => {
 };
 
 const _doFetchPlaylist = async () => {
-    const iptvUrls = (process.env.IPTV_URL || '').split(',').map(u => u.trim()).filter(u => u);
+    // These are the new high-quality validated sources from the user's latest logs
+    const validatedSources = [
+        "http://solution62000.mine.nu:8000/get.php?username=Thibault_nail78&password=07022024&type=m3u_plus",
+        "http://solution62000.mine.nu:8000/get.php?username=belkhirabdou1&password=belkhirabdou1&type=m3u_plus",
+        "http://canal-pro.xyz:8080/get.php?username=JOSEWEBTV25*201&password=39*22hdkult202&type=m3u"
+    ];
+
+    let iptvUrls = (process.env.IPTV_URL || '').split(',').map(u => u.trim()).filter(u => u);
+
+    // Add our validated sources if they aren't already there
+    validatedSources.forEach(vS => {
+        if (!iptvUrls.some(u => u.includes(vS.split('?')[0]))) {
+            iptvUrls.unshift(vS); // Prioritize TNT sources
+        }
+    });
+
     if (iptvUrls.length === 0) {
         console.error('[Proxy] No IPTV_URL configured');
         return false;
     }
 
-    console.log(`[Proxy] 🔄 Refreshing Playlist (Filtered Mode)...`);
+    console.log(`[Proxy] 🔄 Refreshing Playlist with ${iptvUrls.length} sources...`);
     const start = Date.now();
 
     const allFilteredLines = ['#EXTM3U'];
