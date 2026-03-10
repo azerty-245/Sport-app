@@ -174,12 +174,10 @@ const _doFetchPlaylist = async () => {
                     let keep = false;
                     if (nameIsFrench) {
                         keep = true;  // Explicitly tagged FR in name
-                    } else if (nameIsFrenchBrand && !nameIsInternational) {
+                    } else if (nameIsFrenchBrand) {
                         keep = true;  // Known French brand in name
-                    } else if (groupIsFrench && !nameIsInternational) {
-                        keep = true;  // In a French group and not clearly foreign
                     }
-                    // If NO group-title and NO french prefix in name and NO known brand -> REJECT
+                    // No more groupIsFrench fallback — it was letting 13000+ channels pass
 
                     if (keep) {
                         // MINIFICATION: Strip redundant tags to save bandwidth
