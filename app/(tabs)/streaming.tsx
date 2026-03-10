@@ -644,9 +644,9 @@ export default function StreamingScreen() {
                         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
                         contentContainerStyle={styles.list}
                         showsVerticalScrollIndicator={false}
+                        stickyHeaderIndices={[0]}
                         ListHeaderComponent={
-                            <View>
-                                {/* Search bar */}
+                            <View style={styles.stickySearchContainer}>
                                 <View style={styles.searchRow}>
                                     <View style={styles.searchInputWrapper}>
                                         <Ionicons name="search" size={18} color={colors.textMuted} />
@@ -665,6 +665,7 @@ export default function StreamingScreen() {
                                         )}
                                     </View>
                                 </View>
+
                                 {channelSearchQuery.trim() ? (
                                     <Text style={styles.searchResultsText}>
                                         {filteredChannels.length} résultat{filteredChannels.length !== 1 ? 's' : ''} pour "{channelSearchQuery}"
@@ -902,9 +903,17 @@ const styles = StyleSheet.create({
         letterSpacing: 0.5,
     },
     // ─── Search ───
+    stickySearchContainer: {
+        paddingHorizontal: spacing.lg,
+        backgroundColor: colors.background, // Fixed background to cover scrolling content
+        borderBottomWidth: 1,
+        borderBottomColor: colors.cardBorder,
+        zIndex: 10,
+    },
     searchRow: {
         flexDirection: 'row',
-        paddingVertical: spacing.md,
+        paddingTop: spacing.md,
+        paddingBottom: spacing.xs,
         gap: spacing.sm,
     },
     searchInputWrapper: {
