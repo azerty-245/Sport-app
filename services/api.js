@@ -1,28 +1,54 @@
 const BASE_URL = 'https://api.princetechn.com/api/football';
 const API_KEY = process.env.EXPO_PUBLIC_FOOTBALL_API_KEY || 'prince';
 
-async function fetchApi(endpoint, params = {}) {
+async function fetchApi(endpoint, params = {}, retries = 3) {
     const url = new URL(`${BASE_URL}${endpoint}`);
     url.searchParams.set('apikey', API_KEY);
     Object.entries(params).forEach(([key, value]) => {
         if (value) url.searchParams.set(key, value);
     });
 
-    try {
-        const response = await fetch(url.toString());
-        if (!response.ok) {
-            console.warn(`API [${endpoint}] returned ${response.status}`);
+    for (let i = 0; i < retries; i++) {
+        try {
+            const response = await fetch(url.toString(), {
+                headers: {
+                    'Accept': 'application/json',
+                    'Cache-Control': 'no-cache'
+                }
+            });
+
+            if (!response.ok) {
+                if (response.status >= 500 && i < retries - 1) {
+                    console.warn(`API [${endpoint}] server error (${response.status}), retrying (${i + 1}/${retries})...`);
+                    await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+                    continue;
+                }
+                console.warn(`API [${endpoint}] returned ${response.status}`);
+                return null;
+            }
+
+            const data = await response.json();
+            if (data.success) {
+                return data.result;
+            }
+
+            if (i < retries - 1 && data.message === 'Rate limit exceeded') {
+                console.warn(`API [${endpoint}] rate limited, retrying in 2s...`);
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                continue;
+            }
+
+            console.warn(`API [${endpoint}]: ${data.message || 'unsuccessful'}`);
+            return null;
+        } catch (error) {
+            if (i < retries - 1) {
+                console.warn(`API [${endpoint}] network error, retrying (${i + 1}/${retries})...`);
+                await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+                continue;
+            }
+            console.warn(`API [${endpoint}] final network error`);
             return null;
         }
-        const data = await response.json();
-        if (data.success) {
-            return data.result;
-        }
-        console.warn(`API [${endpoint}]: ${data.message || 'unsuccessful'}`);
-        return null;
-    } catch (error) {
-        console.warn(`API [${endpoint}] network error`);
-        return null;
     }
 }
 
