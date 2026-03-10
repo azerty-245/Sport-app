@@ -300,10 +300,10 @@ class Broadcaster {
         this.ffmpeg = spawn('ffmpeg', [
             '-user_agent', 'IPTVSmarters',
             '-err_detect', 'ignore_err',
-            '-probesize', '5000000', '-analyzeduration', '5000000',
+            '-probesize', '1000000', '-analyzeduration', '2000000',
             '-reconnect', '1', '-reconnect_at_eof', '1', '-reconnect_streamed', '1',
             '-reconnect_on_network_error', '1', '-reconnect_on_http_error', '301,302,4xx,5xx',
-            '-fflags', '+genpts+igndts+discardcorrupt+flush_packets',
+            '-fflags', '+genpts+igndts+discardcorrupt+flush_packets+nobuffer',
             '-flags', '+global_header',
             '-i', this.url,
             '-c:v', 'copy',
@@ -311,13 +311,13 @@ class Broadcaster {
             '-f', 'mpegts', 'pipe:1'
         ]);
 
-        // Timeout: if FFmpeg doesn't produce data within 15s, restart the process
+        // Timeout: if FFmpeg doesn't produce data within 25s, restart the process
         this.dataTimeout = setTimeout(() => {
             if (!this.hasReceivedData && this.clients.size > 0) {
-                console.warn(`[Proxy] ⏱️ FFmpeg produced no data in 15s for: ${this.url.substring(this.url.lastIndexOf('/') + 1)} — Restarting stream`);
+                console.warn(`[Proxy] ⏱️ FFmpeg produced no data in 25s for: ${this.url.substring(this.url.lastIndexOf('/') + 1)} — Restarting stream`);
                 this.stopStream(); // stopStream will disconnect clients, client will auto-retry
             }
-        }, 15000);
+        }, 25000);
 
         this.ffmpeg.stdout.on('data', (chunk) => {
             if (!this.hasReceivedData) {
@@ -468,7 +468,7 @@ app.get('/stream', validateApiKey, async (req, res) => {
             res.setHeader('Access-Control-Allow-Origin', '*');
             res.status(504).send('Stream Timeout');
         }
-    }, 12000);
+    }, 20000);
 
     const onDataReady = () => {
         clearTimeout(safetyTimeout);
