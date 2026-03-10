@@ -160,28 +160,43 @@ const _doFetchPlaylist = async () => {
                     }
 
                     // Check if channel name itself indicates French
-                    const nameIsFrench = namePart.includes('FR:') || namePart.includes('FR |') || namePart.includes('FR -') || namePart.includes('(FR)');
+                    const nameIsFrench = namePart.includes('FR:') || namePart.includes('FR |') || namePart.includes('FR -') || namePart.includes('(FR)') || namePart.includes('FRANCE');
                     
                     // Check if the display name contains a known French brand
                     const nameIsFrenchBrand = namePart.includes('CANAL+') || namePart.includes('BEIN') || namePart.includes('RMC') || namePart.includes('TF1') || namePart.includes('FRANCE 2') || namePart.includes('FRANCE 3') || namePart.includes('FRANCE 4') || namePart.includes('FRANCE 5') || namePart.includes('M6') || namePart.includes('ARTE') || namePart.includes('TMC') || namePart.includes('NRJ') || namePart.includes('W9') || namePart.includes('C8') || namePart.includes('CSTAR') || namePart.includes('EQUIPE') || namePart.includes('BFM') || namePart.includes('CNEWS') || namePart.includes('LCI') || namePart.includes('DAZN') || namePart.includes('EUROSPORT') || namePart.includes('CINE+') || namePart.includes('CINÉ+') || namePart.includes('PLANETE') || namePart.includes('PLANÈTE') || namePart.includes('CHERIE') || namePart.includes('GULLI') || namePart.includes('PARIS PREMIERE') || namePart.includes('OCS') || namePart.includes('TCM') || namePart.includes('GAME ONE') || namePart.includes('TELETOON') || namePart.includes('BOOMERANG') || namePart.includes('NICKELODEON') || namePart.includes('CARTOON') || namePart.includes('DISNEY') || namePart.includes('MANGA') || namePart.includes('ANIME') || namePart.includes('J-ONE') || namePart.includes('SPORT EN FRANCE');
                     
-                    // Explicitly whitelist clean, live TV groups (avoids matching "Extra - FR-ACTION" which are VODs)
-                    const groupIsFrenchLive = groupTitle === 'FRANCE' || groupTitle === 'CANADA FRENCH' || groupTitle === 'FR' || groupTitle === 'FRENCH' || groupTitle === 'FRANCE TV';
+                    // Explicitly whitelist clean, live TV groups
+                    const groupTitleClean = groupTitle.trim().toUpperCase();
+                    const groupIsFrenchLive = (
+                        groupTitleClean === 'FRANCE' || 
+                        groupTitleClean === 'CANADA FRENCH' || 
+                        groupTitleClean === 'FR' || 
+                        groupTitleClean === 'FRENCH' || 
+                        groupTitleClean === 'FRANCE TV' || 
+                        groupTitleClean === 'SPORT FR' || 
+                        groupTitleClean === 'SPORTS FR'
+                    );
                     
                     // Filter out clearly international networks
-                    const nameIsInternational = /\b(STARZ|STARZPLAY|AD[ -]?SPORT|STC |WEDO|MBC|ROTANA|OSN|SSC|TATA|SONY LIV|ZEE|STAR PLUS|SKY SPORTS|BT SPORT)\b/i.test(namePart);
+                    const nameIsInternational = /\b(STARZ|STARZPLAY|AD[ -]?SPORT|STC |WEDO|MBC|ROTANA|OSN|SSC|TATA|SONY LIV|ZEE|STAR PLUS|SKY SPORTS|BT SPORT|DISNEY\+)\b/i.test(namePart);
+                    const groupIsInternational = /\b(ARABIC|USA|UK|ITALY|LATINO|MLB|COLOMBIA|URUGUAY|CARIBBEAN|ISLAMIC)\b/i.test(groupTitleClean);
 
                     let keep = false;
                     if (nameIsFrench) {
-                        keep = true;  // Explicitly tagged FR in name
+                        keep = true;
                     } else if (nameIsFrenchBrand) {
-                        keep = true;  // Known French brand in name
+                        keep = true;
                     } else if (groupIsFrenchLive) {
-                        keep = true;  // Sits in a pristine, live France TV folder
+                        keep = true;
                     }
 
-                    if (nameIsInternational) {
-                        keep = false; // Override: If it has ARABIC/INDIAN/UK brands, drop it
+                    if (nameIsInternational || groupIsInternational) {
+                        keep = false; // Override: If it's a foreign bouquet or brand, drop it
+                    }
+
+                    // Strict exclusion for VOD/VOD-like categories
+                    if (groupTitleClean.includes('VOD') || groupTitleClean.includes('MOVIE') || groupTitleClean.includes('SERIE') || groupTitleClean.includes('EXTRA -') || groupTitleClean.includes('NETFLIX') || groupTitleClean.includes('PRIME')) {
+                        keep = false;
                     }
 
                     if (keep) {
