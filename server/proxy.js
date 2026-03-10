@@ -352,6 +352,14 @@ class Broadcaster {
 
                 if (duration < 2000) {
                     console.warn(`[Proxy] 🚨 Immediate FFmpeg failure detected.`);
+                    
+                    // Tell all waiting clients that the stream is dead.
+                    for (const res of this.clients) {
+                        if (!res.headersSent) {
+                            res.setHeader('Access-Control-Allow-Origin', '*');
+                            res.status(502).send('Upstream Source Offline or Failed');
+                        }
+                    }
                     this.stopStream();
                     return;
                 }
