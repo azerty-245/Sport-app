@@ -147,28 +147,18 @@ const _doFetchPlaylist = async () => {
                 } else if (line.startsWith('http') && currentExtInfo) {
                     const infoUpper = currentExtInfo.toUpperCase();
 
-                    // --- REPLICATE CLIENT FILTERING LOGIC ---
-                    const isArabic = infoUpper.includes('AR:') || infoUpper.includes('AR |') || infoUpper.includes('AR -') || infoUpper.includes('ARABIC') || infoUpper.includes('MBC') || infoUpper.includes('OSN');
-                    const isFiller = infoUpper.includes('PRODUITS') || infoUpper.includes('SURPRISE') || infoUpper.includes('BOUTIQUE') || infoUpper.includes('VOD') || infoUpper.includes('LOOP') || infoUpper.includes('RADIO') || infoUpper.includes('BOX OFFICE') || infoUpper.includes('A LA CARTE') || infoUpper.includes('REPLAY') || infoUpper.includes('24/7');
+                    // --- STRICT WHITELIST: Only French channels ---
+                    const isFiller = infoUpper.includes('PRODUITS') || infoUpper.includes('SURPRISE') || infoUpper.includes('BOUTIQUE') || infoUpper.includes('VOD') || infoUpper.includes('LOOP') || infoUpper.includes('RADIO') || infoUpper.includes('BOX OFFICE') || infoUpper.includes('A LA CARTE') || infoUpper.includes('REPLAY') || infoUpper.includes('24/7') || infoUpper.includes('XXX') || infoUpper.includes('ADULT') || infoUpper.includes('XTIME');
 
-                    if (isArabic || isFiller) {
+                    if (isFiller) {
                         currentExtInfo = null;
                         continue;
                     }
 
-                    // --- SMART SOURCE FILTERING ---
-                    const isFrench = infoUpper.includes('FR:') || infoUpper.includes('FR |') || infoUpper.includes('FR-') || infoUpper.includes('FRANCE') || infoUpper.includes('FRENCH') || infoUpper.includes('FRANÇAIS') || infoUpper.includes('(FR)');
-                    const isRequestedBrand = infoUpper.includes('CANAL+') || infoUpper.includes('BEIN') || infoUpper.includes('RMC') || infoUpper.includes('DAZN') || infoUpper.includes('EUROSPORT') || infoUpper.includes('EQUIPE') || infoUpper.includes('CINE') || infoUpper.includes('NETFLIX') || infoUpper.includes('DISNEY') || infoUpper.includes('PARAMOUNT') || infoUpper.includes('HBO') || infoUpper.includes('WARNER') || infoUpper.includes('ACTION') || infoUpper.includes('ANIME') || infoUpper.includes('MANGA') || infoUpper.includes('GAME ONE');
-                    
-                    // Match exact prefixes like "US:", "US |", "[US]", "UK", etc.
-                    const isInternationalPrefix = /\b(?:UK|USA?|IN|DE|ES|PT|IT|AU|PK|PL|RO|RU|TR|GR|BG|NL|BE|CH|SE|DK|NO|FI|AL|ZA|BR|MX|CO|LATAM|VIP|DZ|TN|MA|EG)[\s:\|-]|\[(?:UK|USA?|IN|DE|ES|PT|IT|AU|PK|PL|RO|RU|TR|GR|BG|NL|BE|CH|SE|DK|NO|FI|AL|ZA|BR|MX|CO|LATAM|VIP|DZ|TN|MA|EG)\]/i.test(currentExtInfo);
+                    // Only keep channels explicitly tagged as French
+                    const isFrench = infoUpper.includes('FR:') || infoUpper.includes('FR |') || infoUpper.includes('FR-') || infoUpper.includes('FR ') || infoUpper.includes('FRANCE') || infoUpper.includes('FRENCH') || infoUpper.includes('FRANÇAIS') || infoUpper.includes('(FR)');
 
-                    let keep = false;
-                    if (isFrench) {
-                        keep = true;
-                    } else if (isRequestedBrand && !isInternationalPrefix) {
-                        keep = true;
-                    }
+                    let keep = isFrench;
 
                     if (keep) {
                         // MINIFICATION: Strip redundant tags to save bandwidth
