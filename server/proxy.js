@@ -94,8 +94,8 @@ const fetchPlaylist = async () => {
 const _doFetchPlaylist = async () => {
     // These are the new high-quality validated sources from the user's latest logs
     const validatedSources = [
-        "http://solution62000.mine.nu:8000/get.php?username=Thibault_nail78&password=07022024&type=m3u_plus",
-        "http://canal-pro.xyz:8080/get.php?username=JOSEWEBTV25*201&password=39*22hdkult202&type=m3u_plus&output=ts"
+        "http://81.31.194.66:8080/get.php?username=pro9411767185954&password=710e0fd2fcdc&type=m3u_plus&output=ts",
+        "http://smartbp.xyz:8080/get.php?username=Abhishekkrishnamurthy78565&password=apGE3gd&type=m3u_plus&output=ts"
     ];
 
     let iptvUrls = (process.env.IPTV_URL || '').split(',').map(u => u.trim()).filter(u => u);
