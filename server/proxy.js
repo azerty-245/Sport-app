@@ -95,8 +95,7 @@ const _doFetchPlaylist = async () => {
     // These are the new high-quality validated sources from the user's latest logs
     const validatedSources = [
         "http://solution62000.mine.nu:8000/get.php?username=Thibault_nail78&password=07022024&type=m3u_plus",
-        "http://solution62000.mine.nu:8000/get.php?username=belkhirabdou1&password=belkhirabdou1&type=m3u_plus",
-        "http://canal-pro.xyz:8080/get.php?username=JOSEWEBTV25*201&password=39*22hdkult202&type=m3u"
+        "http://canal-pro.xyz:8080/get.php?username=JOSEWEBTV25*201&password=39*22hdkult202&type=m3u_plus&output=ts"
     ];
 
     let iptvUrls = (process.env.IPTV_URL || '').split(',').map(u => u.trim()).filter(u => u);
@@ -174,12 +173,13 @@ const _doFetchPlaylist = async () => {
 
                     let keep = false;
                     if (nameIsFrench) {
-                        keep = true;  // Explicitly tagged FR
+                        keep = true;  // Explicitly tagged FR in name
                     } else if (nameIsFrenchBrand && !nameIsInternational) {
-                        keep = true;  // Known French brand
+                        keep = true;  // Known French brand in name
                     } else if (groupIsFrench && !nameIsInternational) {
                         keep = true;  // In a French group and not clearly foreign
                     }
+                    // If NO group-title and NO french prefix in name and NO known brand -> REJECT
 
                     if (keep) {
                         // MINIFICATION: Strip redundant tags to save bandwidth
