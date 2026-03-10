@@ -288,7 +288,8 @@ class Broadcaster {
 
         this.ffmpeg = spawn('ffmpeg', [
             '-user_agent', 'IPTVSmarters',
-            '-probesize', '256k', '-analyzeduration', '1000000',
+            '-err_detect', 'ignore_err',
+            '-probesize', '5000000', '-analyzeduration', '5000000',
             '-reconnect', '1', '-reconnect_at_eof', '1', '-reconnect_streamed', '1',
             '-reconnect_on_network_error', '1', '-reconnect_on_http_error', '301,302,4xx,5xx',
             '-fflags', '+genpts+igndts+discardcorrupt+flush_packets',
@@ -299,15 +300,13 @@ class Broadcaster {
             '-f', 'mpegts', 'pipe:1'
         ]);
 
-        // Timeout: if FFmpeg doesn't produce data within 10s, switch to direct pipe
+        // Timeout: if FFmpeg doesn't produce data within 15s, restart the process
         this.dataTimeout = setTimeout(() => {
             if (!this.hasReceivedData && this.clients.size > 0) {
-                console.warn(`[Proxy] ⏱️ FFmpeg produced no data in 10s for: ${this.url.substring(this.url.lastIndexOf('/') + 1)} — Falling back to direct pipe`);
-                this.useFallback = true;
-                if (this.ffmpeg) { try { this.ffmpeg.kill('SIGKILL'); } catch (e) { } }
-                this.startDirectPipe();
+                console.warn(`[Proxy] ⏱️ FFmpeg produced no data in 15s for: ${this.url.substring(this.url.lastIndexOf('/') + 1)} — Restarting stream`);
+                this.stopStream(); // stopStream will disconnect clients, client will auto-retry
             }
-        }, 10000);
+        }, 15000);
 
         this.ffmpeg.stdout.on('data', (chunk) => {
             if (!this.hasReceivedData) {
@@ -346,61 +345,22 @@ class Broadcaster {
             clearTimeout(this.dataTimeout);
             const duration = Date.now() - startTime;
 
-            if (code !== 0 && !this.useFallback) {
+            if (code !== 0) {
                 console.warn(`[Proxy] ⚠️ FFmpeg exited with code ${code} after ${duration}ms`);
 
-                // If FFmpeg fails immediately (< 2000ms), it's likely a bad input causing a crash loop.
-                // Switch to direct pipe immediately.
                 if (duration < 2000) {
-                    console.warn(`[Proxy] 🚨 Immediate FFmpeg failure detected. Switching to Direct Pipe.`);
-                    this.useFallback = true;
-                    this.startDirectPipe();
+                    console.warn(`[Proxy] 🚨 Immediate FFmpeg failure detected.`);
+                    this.stopStream();
                     return;
                 }
             }
 
-            if (this.clients.size > 0 && !this.useFallback) {
+            if (this.clients.size > 0) {
                 console.log(`[Proxy] 🔄 Restarting FFmpeg stream...`);
                 setTimeout(() => this.startStream(), 2000);
-            } else if (!this.useFallback) {
+            } else {
                 this.stopStream();
             }
-        });
-    }
-
-    // Direct pipe fallback: stream raw bytes from source without FFmpeg
-    startDirectPipe() {
-        console.log(`[Proxy] 🔁 Direct pipe for: ${this.url.substring(this.url.lastIndexOf('/') + 1)}`);
-        this.status = 'direct-pipe';
-        axios({
-            method: 'get',
-            url: this.url,
-            responseType: 'stream',
-            timeout: 15000,
-            headers: { 'User-Agent': 'IPTVSmarters' }
-        }).then(response => {
-            this.directStream = response.data;
-            response.data.on('data', (chunk) => {
-                this.hasReceivedData = true;
-                this.status = 'streaming';
-                for (const client of this.clients) {
-                    try { client.write(chunk); } catch (e) { this.clients.delete(client); }
-                }
-            });
-            response.data.on('end', () => {
-                if (this.clients.size > 0) {
-                    setTimeout(() => this.startDirectPipe(), 2000);
-                } else {
-                    this.stopStream();
-                }
-            });
-            response.data.on('error', (err) => {
-                console.error(`[Proxy] ❌ Direct pipe error: ${err.message}`);
-                this.stopStream();
-            });
-        }).catch(err => {
-            console.error(`[Proxy] ❌ Direct pipe connection failed: ${err.message}`);
-            this.stopStream();
         });
     }
 
@@ -417,13 +377,17 @@ class Broadcaster {
 
     removeClient(res) {
         this.clients.delete(res);
+        try { res.end(); } catch (e) { }
         if (this.clients.size === 0) setTimeout(() => { if (this.clients.size === 0) this.stopStream(); }, 2000);
     }
 
     stopStream() {
         clearTimeout(this.dataTimeout);
         if (this.ffmpeg) { try { this.ffmpeg.kill('SIGKILL'); } catch (e) { } }
-        if (this.directStream) { try { this.directStream.destroy(); } catch (e) { } }
+        for (const client of this.clients) {
+            try { client.end(); } catch (e) { }
+        }
+        this.clients.clear();
         broadcastHub.activeStreams.delete(this.url);
     }
 }
@@ -503,7 +467,11 @@ app.get('/stream', validateApiKey, async (req, res) => {
         // We override write for this specific response to trigger headers on first data
         const originalWrite = res.write;
         res.write = function(chunk) {
-            if (!res.headersSent) broadcaster.addClient(res);
+            // ONLY trigger video headers if the response is still healthy (200 OK)
+            // If it's a 502/504, we want to send the raw error text, not binary headers
+            if (!res.headersSent && res.statusCode === 200) {
+                broadcaster.addClient(res);
+            }
             return originalWrite.apply(this, arguments);
         };
     }
