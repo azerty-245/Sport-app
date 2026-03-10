@@ -94,7 +94,7 @@ const fetchPlaylist = async () => {
 const _doFetchPlaylist = async () => {
     // These are the new high-quality validated sources from the user's latest logs
     const validatedSources = [
-        "http://81.31.194.66:8080/get.php?username=pro9411767185954&password=710e0fd2fcdc&type=m3u_plus&output=ts",
+        "http://nordsohzace.top:8080/get.php?username=671769463850&password=e4c483d86573&type=m3u_plus&output=ts",
         "http://smartbp.xyz:8080/get.php?username=Abhishekkrishnamurthy78565&password=apGE3gd&type=m3u_plus&output=ts"
     ];
 
