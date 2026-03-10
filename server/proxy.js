@@ -285,7 +285,7 @@ class Broadcaster {
         this.hasReceivedData = false;
 
         this.ffmpeg = spawn('ffmpeg', [
-            '-user_agent', 'VLC/3.0.18 LibVLC/3.0.18',
+            '-user_agent', 'IPTVSmarters',
             '-probesize', '256k', '-analyzeduration', '1000000',
             '-reconnect', '1', '-reconnect_at_eof', '1', '-reconnect_streamed', '1',
             '-reconnect_on_network_error', '1', '-reconnect_on_http_error', '301,302,4xx,5xx',
@@ -375,7 +375,7 @@ class Broadcaster {
             url: this.url,
             responseType: 'stream',
             timeout: 15000,
-            headers: { 'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18' }
+            headers: { 'User-Agent': 'IPTVSmarters' }
         }).then(response => {
             this.directStream = response.data;
             response.data.on('data', (chunk) => {
@@ -438,7 +438,7 @@ app.get('/stream', validateApiKey, async (req, res) => {
                 url,
                 responseType: 'stream',
                 timeout: 10000,
-                headers: { 'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18' } // UA added
+                headers: { 'User-Agent': 'IPTVSmarters' } // UA updated
             });
             response.data.pipe(res);
         } catch (e) { res.status(502).send('Error'); }
