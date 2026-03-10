@@ -11,21 +11,26 @@ const compression = require('compression');
 
 const app = express();
 
-// --- PAYLOAD COMPRESSION (GZIP/Brotli) ---
-app.use(compression());
+// --- SECURE & PERMISSIVE CORS (Standardized) ---
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'OPTIONS', 'HEAD'],
+    allowedHeaders: ['Content-Type', 'X-API-Key', 'Range', 'Authorization'],
+    exposedHeaders: ['Content-Length', 'Content-Range', 'X-Chunk-Size'],
+    credentials: false
+}));
 
-// --- ULTRA-PERMISSIVE CORS MIDDLEWARE (Fix for Web Streaming) ---
-app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, HEAD');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-API-Key, Range, Authorization');
-    res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Range, X-Chunk-Size');
-
-    if (req.method === 'OPTIONS') {
-        return res.sendStatus(200);
+// --- PAYLOAD COMPRESSION (Selective) ---
+// We compress JSON/Text but NEVER video streams
+app.use(compression({
+    filter: (req, res) => {
+        const contentType = res.getHeader('Content-Type');
+        if (contentType && (contentType.includes('video') || contentType.includes('mpegts'))) {
+            return false;
+        }
+        return compression.filter(req, res);
     }
-    next();
-});
+}));
 
 const PORT = 3005;
 const API_KEY = process.env.API_KEY || 'sport-zone-secure-v1';
@@ -401,9 +406,9 @@ class Broadcaster {
         this.clients.add(res);
         if (!res.headersSent) {
             res.setHeader('Content-Type', 'video/mp2t');
-            res.setHeader('Access-Control-Allow-Origin', '*');
             res.setHeader('Cache-Control', 'no-cache, no-store');
             res.setHeader('Connection', 'keep-alive');
+            // Access-Control-Allow-Origin is already set by CORS middleware at top
             res.flushHeaders(); // Send headers immediately so client MediaSource doesn't timeout
         }
     }
