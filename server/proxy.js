@@ -42,6 +42,7 @@ let playlistCache = {
     configHash: null
 };
 let pendingFetch = null; // Prevents duplicate concurrent fetches
+const urlMap = new Map(); // UUID -> Original IPTV URL (Security)
 
 const REFRESH_INTERVAL = 1000 * 60 * 60 * 6; // 6 hours
 const SOFT_REFRESH_INTERVAL = 1000 * 60 * 5; // 5 minutes soft check
@@ -182,8 +183,9 @@ const _doFetchPlaylist = async () => {
                         minifiedInfo += `,${displayName}`;
 
                         allFilteredLines.push(minifiedInfo);
-                        const encodedUrl = Buffer.from(line).toString('base64');
-                        allFilteredLines.push(`/stream?id=${encodedUrl}&key=${API_KEY}`);
+                        const streamUuid = crypto.randomUUID();
+                        urlMap.set(streamUuid, line);
+                        allFilteredLines.push(`/stream?id=${streamUuid}&key=${API_KEY}`);
                         sourceCount++;
                     }
                     currentExtInfo = null;
@@ -415,7 +417,7 @@ class Broadcaster {
 
     removeClient(res) {
         this.clients.delete(res);
-        if (this.clients.size === 0) setTimeout(() => { if (this.clients.size === 0) this.stopStream(); }, 30000);
+        if (this.clients.size === 0) setTimeout(() => { if (this.clients.size === 0) this.stopStream(); }, 2000);
     }
 
     stopStream() {
@@ -428,8 +430,22 @@ class Broadcaster {
 
 app.get('/stream', validateApiKey, async (req, res) => {
     let { url, id, nocode } = req.query;
-    if (id) url = Buffer.from(id, 'base64').toString('utf-8');
-    if (!url) return res.status(400).send('Missing url');
+    
+    // UUID Lookup (Security: ID is now a UUID, not Base64)
+    if (id) {
+        const mappedUrl = urlMap.get(id);
+        if (mappedUrl) {
+            url = mappedUrl;
+        } else {
+            // Fallback to legacy base64 if not in map (prevents breaking cache on restart)
+            try { url = Buffer.from(id, 'base64').toString('utf-8'); } catch (e) { }
+        }
+    }
+
+    if (!url || !url.startsWith('http')) {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        return res.status(400).send('Invalid or expired stream ID');
+    }
 
     if (nocode === 'true') {
         try {
@@ -438,24 +454,64 @@ app.get('/stream', validateApiKey, async (req, res) => {
                 url,
                 responseType: 'stream',
                 timeout: 10000,
-                headers: { 'User-Agent': 'IPTVSmarters' } // UA updated
+                headers: { 'User-Agent': 'IPTVSmarters' }
             });
+            res.setHeader('Access-Control-Allow-Origin', '*');
             response.data.pipe(res);
-        } catch (e) { res.status(502).send('Error'); }
+        } catch (e) { 
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.status(502).send('Gateway Error'); 
+        }
         return;
     }
 
     let broadcaster = broadcastHub.activeStreams.get(url);
     if (!broadcaster) {
-        if (broadcastHub.activeStreams.size >= MAX_UNIQUE_CHANNELS) return res.status(503).send('Busy');
-        console.log(`[Proxy] 🎥 Starting NEW Broadcaster for: ${url.substring(url.lastIndexOf('/') + 1)}`);
+        if (broadcastHub.activeStreams.size >= MAX_UNIQUE_CHANNELS) {
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            return res.status(503).send('Server Busy');
+        }
+        
+        // Log only channel ID to prevent URL leak
+        const channelId = url.substring(url.lastIndexOf('/') + 1);
+        console.log(`[Proxy] 🎥 Starting NEW Broadcaster for: ${channelId}`);
         broadcaster = new Broadcaster(url);
         broadcastHub.activeStreams.set(url, broadcaster);
-    } else {
-        console.log(`[Proxy] 🤝 Sharing existing stream for: ${url.substring(url.lastIndexOf('/') + 1)} (Active clients: ${broadcaster.clients.size})`);
     }
-    broadcaster.addClient(res);
-    res.on('close', () => broadcaster.removeClient(res));
+
+    // Safety timeout for header wait
+    const safetyTimeout = setTimeout(() => {
+        if (!res.headersSent) {
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.status(504).send('Stream Timeout');
+        }
+    }, 12000);
+
+    const onDataReady = () => {
+        clearTimeout(safetyTimeout);
+        if (!res.headersSent) broadcaster.addClient(res);
+    };
+
+    // If already streaming, join immediately
+    if (broadcaster.hasReceivedData) {
+        onDataReady();
+    } else {
+        // Listen for the first chunk to trigger headers
+        const originalAddClient = broadcaster.addClient;
+        broadcaster.clients.add(res); 
+        
+        // We override write for this specific response to trigger headers on first data
+        const originalWrite = res.write;
+        res.write = function(chunk) {
+            if (!res.headersSent) broadcaster.addClient(res);
+            return originalWrite.apply(this, arguments);
+        };
+    }
+
+    res.on('close', () => {
+        clearTimeout(safetyTimeout);
+        broadcaster.removeClient(res);
+    });
 });
 
 // --- HLS SUPPORT (for Safari / iOS which don't have MSE) ---
@@ -596,15 +652,13 @@ app.get('/json', validateApiKey, async (req, res) => {
         const response = await axios.get(url, {
             timeout: 10000,
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-                'Accept': 'application/json, text/plain, */*',
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                'Accept': '*/*',
                 'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
                 'Referer': 'https://www.sofascore.com/',
                 'Origin': 'https://www.sofascore.com',
-                'X-Requested-With': 'XMLHttpRequest',
-                'Sec-Fetch-Dest': 'empty',
-                'Sec-Fetch-Mode': 'cors',
-                'Sec-Fetch-Site': 'same-site'
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
             }
         });
 
