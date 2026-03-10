@@ -165,19 +165,24 @@ const _doFetchPlaylist = async () => {
                     // Check if the display name contains a known French brand
                     const nameIsFrenchBrand = namePart.includes('CANAL+') || namePart.includes('BEIN') || namePart.includes('RMC') || namePart.includes('TF1') || namePart.includes('FRANCE 2') || namePart.includes('FRANCE 3') || namePart.includes('FRANCE 4') || namePart.includes('FRANCE 5') || namePart.includes('M6') || namePart.includes('ARTE') || namePart.includes('TMC') || namePart.includes('NRJ') || namePart.includes('W9') || namePart.includes('C8') || namePart.includes('CSTAR') || namePart.includes('EQUIPE') || namePart.includes('BFM') || namePart.includes('CNEWS') || namePart.includes('LCI') || namePart.includes('DAZN') || namePart.includes('EUROSPORT') || namePart.includes('CINE+') || namePart.includes('CINÉ+') || namePart.includes('PLANETE') || namePart.includes('PLANÈTE') || namePart.includes('CHERIE') || namePart.includes('GULLI') || namePart.includes('PARIS PREMIERE') || namePart.includes('OCS') || namePart.includes('TCM') || namePart.includes('GAME ONE') || namePart.includes('TELETOON') || namePart.includes('BOOMERANG') || namePart.includes('NICKELODEON') || namePart.includes('CARTOON') || namePart.includes('DISNEY') || namePart.includes('MANGA') || namePart.includes('ANIME') || namePart.includes('J-ONE') || namePart.includes('SPORT EN FRANCE');
                     
-                    // Check if group-title explicitly says FRANCE
-                    const groupIsFrench = groupTitle.includes('FRANCE') || groupTitle.includes('FR |') || groupTitle.includes('FR:') || groupTitle.includes('FRENCH') || groupTitle.includes('FRANÇAIS');
+                    // Explicitly whitelist clean, live TV groups (avoids matching "Extra - FR-ACTION" which are VODs)
+                    const groupIsFrenchLive = groupTitle === 'FRANCE' || groupTitle === 'CANADA FRENCH' || groupTitle === 'FR' || groupTitle === 'FRENCH' || groupTitle === 'FRANCE TV';
                     
-                    // Check display name isn't clearly international 
-                    const nameIsInternational = /\b(STARZ|STARZPLAY|AD[ -]?SPORT|STC |WEDO|MBC|ROTANA|OSN|SSC|TATA|SONY LIV|ZEE|STAR PLUS)\b/i.test(namePart);
+                    // Filter out clearly international networks
+                    const nameIsInternational = /\b(STARZ|STARZPLAY|AD[ -]?SPORT|STC |WEDO|MBC|ROTANA|OSN|SSC|TATA|SONY LIV|ZEE|STAR PLUS|SKY SPORTS|BT SPORT)\b/i.test(namePart);
 
                     let keep = false;
                     if (nameIsFrench) {
                         keep = true;  // Explicitly tagged FR in name
                     } else if (nameIsFrenchBrand) {
                         keep = true;  // Known French brand in name
+                    } else if (groupIsFrenchLive) {
+                        keep = true;  // Sits in a pristine, live France TV folder
                     }
-                    // No more groupIsFrench fallback — it was letting 13000+ channels pass
+
+                    if (nameIsInternational) {
+                        keep = false; // Override: If it has ARABIC/INDIAN/UK brands, drop it
+                    }
 
                     if (keep) {
                         // MINIFICATION: Strip redundant tags to save bandwidth
