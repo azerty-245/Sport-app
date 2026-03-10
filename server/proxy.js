@@ -146,19 +146,40 @@ const _doFetchPlaylist = async () => {
                     currentExtInfo = line;
                 } else if (line.startsWith('http') && currentExtInfo) {
                     const infoUpper = currentExtInfo.toUpperCase();
+                    
+                    // Extract display name (after last comma) and group-title separately
+                    const namePart = currentExtInfo.split(',').pop().trim().toUpperCase();
+                    const groupMatch2 = currentExtInfo.match(/group-title="([^"]*)"/i);
+                    const groupTitle = groupMatch2 ? groupMatch2[1].toUpperCase() : '';
 
                     // --- STRICT WHITELIST: Only French channels ---
-                    const isFiller = infoUpper.includes('PRODUITS') || infoUpper.includes('SURPRISE') || infoUpper.includes('BOUTIQUE') || infoUpper.includes('VOD') || infoUpper.includes('LOOP') || infoUpper.includes('RADIO') || infoUpper.includes('BOX OFFICE') || infoUpper.includes('A LA CARTE') || infoUpper.includes('REPLAY') || infoUpper.includes('24/7') || infoUpper.includes('XXX') || infoUpper.includes('ADULT') || infoUpper.includes('XTIME');
+                    const isFiller = namePart.includes('XXX') || namePart.includes('ADULT') || namePart.includes('XTIME') || namePart.includes('PORNO') || namePart.includes('EROTI') || groupTitle.includes('XXX') || groupTitle.includes('ADULT') || groupTitle.includes('EROTI') || groupTitle.includes('PORNO') || infoUpper.includes('PRODUITS') || infoUpper.includes('SURPRISE') || infoUpper.includes('BOUTIQUE') || infoUpper.includes('VOD') || infoUpper.includes('LOOP') || infoUpper.includes('BOX OFFICE') || infoUpper.includes('A LA CARTE') || infoUpper.includes('24/7');
 
                     if (isFiller) {
                         currentExtInfo = null;
                         continue;
                     }
 
-                    // Only keep channels explicitly tagged as French
-                    const isFrench = infoUpper.includes('FR:') || infoUpper.includes('FR |') || infoUpper.includes('FR-') || infoUpper.includes('FR ') || infoUpper.includes('FRANCE') || infoUpper.includes('FRENCH') || infoUpper.includes('FRANÇAIS') || infoUpper.includes('(FR)');
+                    // Check if channel name itself indicates French
+                    const nameIsFrench = namePart.includes('FR:') || namePart.includes('FR |') || namePart.includes('FR -') || namePart.includes('(FR)');
+                    
+                    // Check if the display name contains a known French brand
+                    const nameIsFrenchBrand = namePart.includes('CANAL+') || namePart.includes('BEIN') || namePart.includes('RMC') || namePart.includes('TF1') || namePart.includes('FRANCE 2') || namePart.includes('FRANCE 3') || namePart.includes('FRANCE 4') || namePart.includes('FRANCE 5') || namePart.includes('M6') || namePart.includes('ARTE') || namePart.includes('TMC') || namePart.includes('NRJ') || namePart.includes('W9') || namePart.includes('C8') || namePart.includes('CSTAR') || namePart.includes('EQUIPE') || namePart.includes('BFM') || namePart.includes('CNEWS') || namePart.includes('LCI') || namePart.includes('DAZN') || namePart.includes('EUROSPORT') || namePart.includes('CINE+') || namePart.includes('CINÉ+') || namePart.includes('PLANETE') || namePart.includes('PLANÈTE') || namePart.includes('CHERIE') || namePart.includes('GULLI') || namePart.includes('PARIS PREMIERE') || namePart.includes('OCS') || namePart.includes('TCM') || namePart.includes('GAME ONE') || namePart.includes('TELETOON') || namePart.includes('BOOMERANG') || namePart.includes('NICKELODEON') || namePart.includes('CARTOON') || namePart.includes('DISNEY') || namePart.includes('MANGA') || namePart.includes('ANIME') || namePart.includes('J-ONE') || namePart.includes('SPORT EN FRANCE');
+                    
+                    // Check if group-title explicitly says FRANCE
+                    const groupIsFrench = groupTitle.includes('FRANCE') || groupTitle.includes('FR |') || groupTitle.includes('FR:') || groupTitle.includes('FRENCH') || groupTitle.includes('FRANÇAIS');
+                    
+                    // Check display name isn't clearly international 
+                    const nameIsInternational = /\b(STARZ|STARZPLAY|AD[ -]?SPORT|STC |WEDO|MBC|ROTANA|OSN|SSC|TATA|SONY LIV|ZEE|STAR PLUS)\b/i.test(namePart);
 
-                    let keep = isFrench;
+                    let keep = false;
+                    if (nameIsFrench) {
+                        keep = true;  // Explicitly tagged FR
+                    } else if (nameIsFrenchBrand && !nameIsInternational) {
+                        keep = true;  // Known French brand
+                    } else if (groupIsFrench && !nameIsInternational) {
+                        keep = true;  // In a French group and not clearly foreign
+                    }
 
                     if (keep) {
                         // MINIFICATION: Strip redundant tags to save bandwidth
