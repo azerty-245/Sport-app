@@ -147,8 +147,8 @@ const _doFetchPlaylist = async () => {
                         continue;
                     }
 
-                    // Strict exclusion for international prefixes (Spain, India, USA, etc.)
-                    const isInternationalPrefix = /^(ES|IN|US|AR|TR|DE|UK|PT|IT|BE|AL|TH|PL|RO|RU|GR)[:| -]/i.test(namePart);
+                    // Ultra-Strict exclusion for international prefixes (Spain, India, USA, Arab, etc.)
+                    const isInternationalPrefix = /\b(USA:|US:|ESP:|ES:|IND:|IN:|GER:|DE:|SPA:|AR:|AR\||ARAB:|TUR:|TR:|UK:|BR:|LAT:|PT:|IT:)\b/i.test(namePart);
 
                     // Check if channel name itself indicates French
                     const nameIsFrench = namePart.startsWith('FR:') || namePart.includes('FR |') || namePart.includes('FR -') || namePart.includes('(FR)') || namePart.includes('FRANCE');
@@ -180,7 +180,7 @@ const _doFetchPlaylist = async () => {
                         keep = true;
                     }
 
-                    if (nameIsInternational || groupIsInternational || isInternationalPrefix) {
+                    if (isInternationalPrefix || nameIsInternational || groupIsInternational) {
                         keep = false; // Override: If it's a foreign bouquet, brand, or prefix, drop it
                     }
 
@@ -298,7 +298,7 @@ class Broadcaster {
         this.clients = new Set();
         this.status = 'starting';
         this.hasReceivedData = false;
-        this.useFallback = false;
+        this.isPaused = false;
         this.startStream();
     }
 
@@ -315,6 +315,7 @@ class Broadcaster {
             '-reconnect_on_network_error', '1', '-reconnect_on_http_error', '301,302,4xx,5xx',
             '-fflags', '+genpts+igndts+discardcorrupt+flush_packets+nobuffer',
             '-flags', '+global_header',
+            '-re', // Read at native rate to prevent data bursts (Essential for MSE stability)
             '-stream_loop', '-1',
             '-i', this.url,
             '-c:v', 'copy',
@@ -338,13 +339,20 @@ class Broadcaster {
                 console.log(`[Proxy] 📦 First data chunk received (${chunk.length} bytes)`);
             }
             this.status = 'streaming';
+            
+            let allCongested = this.clients.size > 0;
             for (const client of this.clients) {
                 try {
                     const ready = client.write(chunk);
-                    if (!ready) {
-                        console.warn(`[Proxy] 🐌 Client Congestion (Backpressure) for ${this.url.substring(this.url.lastIndexOf('/') + 1)}`);
-                    }
+                    if (ready) allCongested = false; // At least one client is fast
                 } catch (e) { this.clients.delete(client); }
+            }
+
+            // SMART PIPE: If ALL clients are congested, pause FFmpeg to prevent buffer pileup
+            if (allCongested && !this.isPaused) {
+                console.warn(`[Proxy] 🐌 Global Backpressure: Pausing FFmpeg for ${this.url.substring(this.url.lastIndexOf('/') + 1)}`);
+                this.ffmpeg.stdout.pause();
+                this.isPaused = true;
             }
         });
 
@@ -397,6 +405,16 @@ class Broadcaster {
 
     addClient(res) {
         this.clients.add(res);
+
+        // Resume stream if a client drains (backpressure release)
+        res.on('drain', () => {
+            if (this.isPaused) {
+                console.log(`[Proxy] 🟢 Drain detected: Resuming FFmpeg for ${this.url.substring(this.url.lastIndexOf('/') + 1)}`);
+                this.ffmpeg.stdout.resume();
+                this.isPaused = false;
+            }
+        });
+
         if (!res.headersSent) {
             res.setHeader('Content-Type', 'video/mp2t');
             res.setHeader('Cache-Control', 'no-cache, no-store');

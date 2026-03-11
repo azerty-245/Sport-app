@@ -412,12 +412,12 @@ export default function StreamingScreen() {
                 }, {
                   enableWorker: true,
                   lazyLoad: false,
-                  liveBufferLatencyChasing: false, // Disable chasing — let buffer grow
+                  liveBufferLatencyChasing: true, // Re-enable chasing for low latency
                   liveSync: false,
-                  liveBufferLatencyMaxLatency: 35.0, // Allow up to 35s buffer
-                  liveBufferLatencyMinLatency: 12.0, // Keep at least 12s (VERY stable over latency)
+                  liveBufferLatencyMaxLatency: 2.1, // Tight max latency
+                  liveBufferLatencyMinLatency: 1.0, // Stable min latency
                   enableStashBuffer: true,
-                  stashInitialSize: 4096 * 1024, // 4MB stash (larger for high-bitrate support)
+                  stashInitialSize: 128 * 1024, // Fix: 128KB instead of 4MB (prevents typed array length errors)
                   autoCleanupSourceBuffer: true,
                   autoCleanupMaxBackwardDuration: 30,
                   autoCleanupMinBackwardDuration: 15,
