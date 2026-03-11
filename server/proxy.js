@@ -92,23 +92,11 @@ const fetchPlaylist = async () => {
 };
 
 const _doFetchPlaylist = async () => {
-    // These are the new high-quality validated sources from the user's latest logs
-    const validatedSources = [
-        "http://vipkentken.top:8080/get.php?username=VIP014991763158752117&password=879ce578d38b&type=m3u_plus&output=ts",
-        "http://smartbp.xyz:8080/get.php?username=Abhishekkrishnamurthy78565&password=apGE3gd&type=m3u_plus&output=ts"
-    ];
-
+    // Sources are now managed entirely through the IPTV_URL environment variable (comma-separated)
     let iptvUrls = (process.env.IPTV_URL || '').split(',').map(u => u.trim()).filter(u => u);
 
-    // Add our validated sources if they aren't already there
-    validatedSources.forEach(vS => {
-        if (!iptvUrls.some(u => u.includes(vS.split('?')[0]))) {
-            iptvUrls.unshift(vS); // Prioritize TNT sources
-        }
-    });
-
     if (iptvUrls.length === 0) {
-        console.error('[Proxy] No IPTV_URL configured');
+        console.error('[Proxy] No IPTV_URL configured in .env');
         return false;
     }
 
@@ -145,14 +133,14 @@ const _doFetchPlaylist = async () => {
                     currentExtInfo = line;
                 } else if (line.startsWith('http') && currentExtInfo) {
                     const infoUpper = currentExtInfo.toUpperCase();
-                    
+
                     // Extract display name (after last comma) and group-title separately
                     const namePart = currentExtInfo.split(',').pop().trim().toUpperCase();
                     const groupMatch2 = currentExtInfo.match(/group-title="([^"]*)"/i);
                     const groupTitle = groupMatch2 ? groupMatch2[1].toUpperCase() : '';
 
                     // --- STRICT WHITELIST: Only French channels ---
-                    const isFiller = namePart.includes('XXX') || namePart.includes('ADULT') || namePart.includes('XTIME') || namePart.includes('PORNO') || namePart.includes('EROTI') || groupTitle.includes('XXX') || groupTitle.includes('ADULT') || groupTitle.includes('EROTI') || groupTitle.includes('PORNO') || infoUpper.includes('PRODUITS') || infoUpper.includes('SURPRISE') || infoUpper.includes('BOUTIQUE') || infoUpper.includes('VOD') || infoUpper.includes('LOOP') || infoUpper.includes('BOX OFFICE') || infoUpper.includes('A LA CARTE') || infoUpper.includes('24/7');
+                    const isFiller = namePart.includes('EROTI') || groupTitle.includes('XXX') || groupTitle.includes('ADULT') || groupTitle.includes('EROTI') || groupTitle.includes('PORNO') || infoUpper.includes('PRODUITS') || infoUpper.includes('SURPRISE') || infoUpper.includes('BOUTIQUE') || infoUpper.includes('VOD') || infoUpper.includes('LOOP') || infoUpper.includes('BOX OFFICE') || infoUpper.includes('A LA CARTE') || infoUpper.includes('24/7');
 
                     if (isFiller) {
                         currentExtInfo = null;
@@ -161,25 +149,25 @@ const _doFetchPlaylist = async () => {
 
                     // Strict exclusion for international prefixes (Spain, India, USA, etc.)
                     const isInternationalPrefix = /^(ES:|IN:|US:|AR:|TR:|DE:|UK:|PT:|IT:|BE:|AL:|TH:|PL:|RO:|RU:|GR:)/i.test(namePart);
-                    
+
                     // Check if channel name itself indicates French
                     const nameIsFrench = namePart.startsWith('FR:') || namePart.includes('FR |') || namePart.includes('FR -') || namePart.includes('(FR)') || namePart.includes('FRANCE');
-                    
+
                     // Check if the display name contains a known French brand
                     const nameIsFrenchBrand = namePart.includes('CANAL+') || namePart.includes('BEIN') || namePart.includes('RMC') || namePart.includes('TF1') || namePart.includes('FRANCE 2') || namePart.includes('FRANCE 3') || namePart.includes('FRANCE 4') || namePart.includes('FRANCE 5') || namePart.includes('M6') || namePart.includes('ARTE') || namePart.includes('TMC') || namePart.includes('NRJ') || namePart.includes('W9') || namePart.includes('C8') || namePart.includes('CSTAR') || namePart.includes('EQUIPE') || namePart.includes('BFM') || namePart.includes('CNEWS') || namePart.includes('LCI') || namePart.includes('DAZN') || namePart.includes('EUROSPORT') || namePart.includes('CINE+') || namePart.includes('CINÉ+') || namePart.includes('PLANETE') || namePart.includes('PLANÈTE') || namePart.includes('CHERIE') || namePart.includes('GULLI') || namePart.includes('PARIS PREMIERE') || namePart.includes('OCS') || namePart.includes('TCM') || namePart.includes('GAME ONE') || namePart.includes('TELETOON') || namePart.includes('BOOMERANG') || namePart.includes('NICKELODEON') || namePart.includes('CARTOON') || namePart.includes('DISNEY') || namePart.includes('MANGA') || namePart.includes('ANIME') || namePart.includes('J-ONE') || namePart.includes('SPORT EN FRANCE');
-                    
+
                     // Explicitly whitelist clean, live TV groups
                     const groupTitleClean = groupTitle.trim().toUpperCase();
                     const groupIsFrenchLive = (
-                        groupTitleClean === 'FRANCE' || 
-                        groupTitleClean === 'CANADA FRENCH' || 
-                        groupTitleClean === 'FR' || 
-                        groupTitleClean === 'FRENCH' || 
-                        groupTitleClean === 'FRANCE TV' || 
-                        groupTitleClean === 'SPORT FR' || 
+                        groupTitleClean === 'FRANCE' ||
+                        groupTitleClean === 'CANADA FRENCH' ||
+                        groupTitleClean === 'FR' ||
+                        groupTitleClean === 'FRENCH' ||
+                        groupTitleClean === 'FRANCE TV' ||
+                        groupTitleClean === 'SPORT FR' ||
                         groupTitleClean === 'SPORTS FR'
                     );
-                    
+
                     // Filter out clearly international networks
                     const nameIsInternational = /\b(STARZ|STARZPLAY|AD[ -]?SPORT|STC |WEDO|MBC|ROTANA|OSN|SSC|TATA|SONY LIV|ZEE|STAR PLUS|SKY SPORTS|BT SPORT|DISNEY\+)\b/i.test(namePart);
                     const groupIsInternational = /\b(ARABIC|USA|UK|ITALY|LATINO|MLB|COLOMBIA|URUGUAY|CARIBBEAN|ISLAMIC)\b/i.test(groupTitleClean);
@@ -385,7 +373,7 @@ class Broadcaster {
 
                 if (duration < 2000) {
                     console.warn(`[Proxy] 🚨 Immediate FFmpeg failure detected.`);
-                    
+
                     // Tell all waiting clients that the stream is dead.
                     for (const res of this.clients) {
                         if (!res.headersSent) {
@@ -437,7 +425,7 @@ class Broadcaster {
 
 app.get('/stream', validateApiKey, async (req, res) => {
     let { url, id, nocode } = req.query;
-    
+
     // UUID Lookup (Security: ID is now a UUID, not Base64)
     if (id) {
         const mappedUrl = urlMap.get(id);
@@ -465,9 +453,9 @@ app.get('/stream', validateApiKey, async (req, res) => {
             });
             res.setHeader('Access-Control-Allow-Origin', '*');
             response.data.pipe(res);
-        } catch (e) { 
+        } catch (e) {
             res.setHeader('Access-Control-Allow-Origin', '*');
-            res.status(502).send('Gateway Error'); 
+            res.status(502).send('Gateway Error');
         }
         return;
     }
@@ -478,7 +466,7 @@ app.get('/stream', validateApiKey, async (req, res) => {
             res.setHeader('Access-Control-Allow-Origin', '*');
             return res.status(503).send('Server Busy');
         }
-        
+
         // Log only channel ID to prevent URL leak
         const channelId = url.substring(url.lastIndexOf('/') + 1);
         console.log(`[Proxy] 🎥 Starting NEW Broadcaster for: ${channelId}`);
@@ -505,11 +493,11 @@ app.get('/stream', validateApiKey, async (req, res) => {
     } else {
         // Listen for the first chunk to trigger headers
         const originalAddClient = broadcaster.addClient;
-        broadcaster.clients.add(res); 
-        
+        broadcaster.clients.add(res);
+
         // We override write for this specific response to trigger headers on first data
         const originalWrite = res.write;
-        res.write = function(chunk) {
+        res.write = function (chunk) {
             // ONLY trigger video headers if the response is still healthy (200 OK)
             // If it's a 502/504, we want to send the raw error text, not binary headers
             if (!res.headersSent && res.statusCode === 200) {
