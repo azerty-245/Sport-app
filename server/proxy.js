@@ -159,8 +159,11 @@ const _doFetchPlaylist = async () => {
                         continue;
                     }
 
+                    // Strict exclusion for international prefixes (Spain, India, USA, etc.)
+                    const isInternationalPrefix = /^(ES:|IN:|US:|AR:|TR:|DE:|UK:|PT:|IT:|BE:|AL:|TH:|PL:|RO:|RU:|GR:)/i.test(namePart);
+                    
                     // Check if channel name itself indicates French
-                    const nameIsFrench = namePart.includes('FR:') || namePart.includes('FR |') || namePart.includes('FR -') || namePart.includes('(FR)') || namePart.includes('FRANCE');
+                    const nameIsFrench = namePart.startsWith('FR:') || namePart.includes('FR |') || namePart.includes('FR -') || namePart.includes('(FR)') || namePart.includes('FRANCE');
                     
                     // Check if the display name contains a known French brand
                     const nameIsFrenchBrand = namePart.includes('CANAL+') || namePart.includes('BEIN') || namePart.includes('RMC') || namePart.includes('TF1') || namePart.includes('FRANCE 2') || namePart.includes('FRANCE 3') || namePart.includes('FRANCE 4') || namePart.includes('FRANCE 5') || namePart.includes('M6') || namePart.includes('ARTE') || namePart.includes('TMC') || namePart.includes('NRJ') || namePart.includes('W9') || namePart.includes('C8') || namePart.includes('CSTAR') || namePart.includes('EQUIPE') || namePart.includes('BFM') || namePart.includes('CNEWS') || namePart.includes('LCI') || namePart.includes('DAZN') || namePart.includes('EUROSPORT') || namePart.includes('CINE+') || namePart.includes('CINÉ+') || namePart.includes('PLANETE') || namePart.includes('PLANÈTE') || namePart.includes('CHERIE') || namePart.includes('GULLI') || namePart.includes('PARIS PREMIERE') || namePart.includes('OCS') || namePart.includes('TCM') || namePart.includes('GAME ONE') || namePart.includes('TELETOON') || namePart.includes('BOOMERANG') || namePart.includes('NICKELODEON') || namePart.includes('CARTOON') || namePart.includes('DISNEY') || namePart.includes('MANGA') || namePart.includes('ANIME') || namePart.includes('J-ONE') || namePart.includes('SPORT EN FRANCE');
@@ -181,17 +184,16 @@ const _doFetchPlaylist = async () => {
                     const nameIsInternational = /\b(STARZ|STARZPLAY|AD[ -]?SPORT|STC |WEDO|MBC|ROTANA|OSN|SSC|TATA|SONY LIV|ZEE|STAR PLUS|SKY SPORTS|BT SPORT|DISNEY\+)\b/i.test(namePart);
                     const groupIsInternational = /\b(ARABIC|USA|UK|ITALY|LATINO|MLB|COLOMBIA|URUGUAY|CARIBBEAN|ISLAMIC)\b/i.test(groupTitleClean);
 
+                    // LOGIC: To keep a channel, it MUST be French-related AND NOT have an international prefix
                     let keep = false;
-                    if (nameIsFrench) {
+                    if (nameIsFrench || groupIsFrenchLive) {
                         keep = true;
-                    } else if (nameIsFrenchBrand) {
-                        keep = true;
-                    } else if (groupIsFrenchLive) {
+                    } else if (nameIsFrenchBrand && !isInternationalPrefix) {
                         keep = true;
                     }
 
-                    if (nameIsInternational || groupIsInternational) {
-                        keep = false; // Override: If it's a foreign bouquet or brand, drop it
+                    if (nameIsInternational || groupIsInternational || isInternationalPrefix) {
+                        keep = false; // Override: If it's a foreign bouquet, brand, or prefix, drop it
                     }
 
                     // Strict exclusion for VOD/VOD-like categories
@@ -318,16 +320,18 @@ class Broadcaster {
         this.hasReceivedData = false;
 
         this.ffmpeg = spawn('ffmpeg', [
-            '-user_agent', 'IPTVSmarters',
+            '-user_agent', 'VLC/3.0.18 LibVLC/3.0.18',
             '-err_detect', 'ignore_err',
             '-probesize', '1000000', '-analyzeduration', '2000000',
             '-reconnect', '1', '-reconnect_at_eof', '1', '-reconnect_streamed', '1',
             '-reconnect_on_network_error', '1', '-reconnect_on_http_error', '301,302,4xx,5xx',
             '-fflags', '+genpts+igndts+discardcorrupt+flush_packets+nobuffer',
             '-flags', '+global_header',
+            '-stream_loop', '-1',
             '-i', this.url,
             '-c:v', 'copy',
-            '-c:a', 'aac', '-b:a', '128k', '-af', 'aresample=async=1',
+            '-c:a', 'aac', '-b:a', '128k', '-ac', '2', '-af', 'aresample=async=1',
+            '-muxdelay', '0', '-muxpreload', '0',
             '-f', 'mpegts', 'pipe:1'
         ]);
 
@@ -659,11 +663,14 @@ app.get('/json', validateApiKey, async (req, res) => {
         const response = await axios.get(url, {
             timeout: 10000,
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-                'Accept': '*/*',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+                'Accept': 'application/json, text/plain, */*',
                 'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
                 'Referer': 'https://www.sofascore.com/',
                 'Origin': 'https://www.sofascore.com',
+                'Sec-Fetch-Dest': 'empty',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-site',
                 'Cache-Control': 'no-cache',
                 'Pragma': 'no-cache'
             }
