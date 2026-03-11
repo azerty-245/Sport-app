@@ -148,7 +148,7 @@ const _doFetchPlaylist = async () => {
                     }
 
                     // Strict exclusion for international prefixes (Spain, India, USA, etc.)
-                    const isInternationalPrefix = /^(ES:|IN:|US:|AR:|TR:|DE:|UK:|PT:|IT:|BE:|AL:|TH:|PL:|RO:|RU:|GR:)/i.test(namePart);
+                    const isInternationalPrefix = /^(ES|IN|US|AR|TR|DE|UK|PT|IT|BE|AL|TH|PL|RO|RU|GR)[:| -]/i.test(namePart);
 
                     // Check if channel name itself indicates French
                     const nameIsFrench = namePart.startsWith('FR:') || namePart.includes('FR |') || namePart.includes('FR -') || namePart.includes('(FR)') || namePart.includes('FRANCE');
@@ -170,7 +170,7 @@ const _doFetchPlaylist = async () => {
 
                     // Filter out clearly international networks
                     const nameIsInternational = /\b(STARZ|STARZPLAY|AD[ -]?SPORT|STC |WEDO|MBC|ROTANA|OSN|SSC|TATA|SONY LIV|ZEE|STAR PLUS|SKY SPORTS|BT SPORT|DISNEY\+)\b/i.test(namePart);
-                    const groupIsInternational = /\b(ARABIC|USA|UK|ITALY|LATINO|MLB|COLOMBIA|URUGUAY|CARIBBEAN|ISLAMIC)\b/i.test(groupTitleClean);
+                    const groupIsInternational = /\b(ARABIC|ARAB|USA|UK|ITALY|LATINO|MLB|COLOMBIA|URUGUAY|CARIBBEAN|ISLAMIC|ESPA|SPAIN|INDIA|GERMAN|ALGERIA|MOROCCO|TUNISIA)\b/i.test(groupTitleClean);
 
                     // LOGIC: To keep a channel, it MUST be French-related AND NOT have an international prefix
                     let keep = false;
